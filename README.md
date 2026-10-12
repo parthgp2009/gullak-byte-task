@@ -99,6 +99,14 @@ No known bugs at the time of writing. The items below are limitations of the Sta
 - AsyncStorage is a simple key-value store. It is fine for a personal inbox, but SQLite would suit a very large number of items better.
 - The APK is not distributed through the Play Store, so Android shows an "unknown sources" prompt on install.
 
+## Stage 2 ideas
+
+- Authentication and cloud sync (Supabase or Firebase), with per-user data isolation using row-level security.
+- Move local storage to SQLite for faster queries on large collections.
+- Save to Gullak from the Android share sheet.
+- Link previews (title and thumbnail) and full-text search.
+- Export and import for backups.
+
 ## Commit history
 
 The repository history shows the work in order: data layer, screens, redesign, and build setup.
