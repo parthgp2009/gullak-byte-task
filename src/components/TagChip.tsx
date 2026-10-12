@@ -1,8 +1,9 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { PressableScale } from './primitives/PressableScale';
 import { useTheme } from '../hooks/useTheme';
-import { borderRadius, spacing, typography, colors } from '../theme';
+import { borderRadius, spacing, colors, fontFamilies } from '../theme';
 
 interface TagChipProps {
   label: string;
@@ -31,11 +32,13 @@ export const TagChip: React.FC<TagChipProps> = ({
         style={[
           styles.chip,
           isSmall ? styles.chipSmall : styles.chipMedium,
-          { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
+          { backgroundColor: theme.surface, borderColor: theme.border },
         ]}
       >
-        <Text style={[styles.hashText, { color: colors.marigoldDark }]}>#</Text>
-        <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
+        <Text style={[styles.hashText, { color: colors.terracotta }]}>#</Text>
+        <Text style={[styles.label, { color: theme.text, fontFamily: fontFamilies.sans }]}>
+          {label}
+        </Text>
         <TouchableOpacity
           onPress={onRemove}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -51,24 +54,29 @@ export const TagChip: React.FC<TagChipProps> = ({
 
   if (variant === 'selectable') {
     return (
-      <TouchableOpacity
-        activeOpacity={0.7}
+      <PressableScale
         onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`Filter by tag ${label}`}
+        accessibilityState={{ selected: isSelected }}
         style={[
           styles.chip,
           isSmall ? styles.chipSmall : styles.chipMedium,
           isSelected
-            ? { backgroundColor: colors.marigold, borderColor: colors.marigoldDark }
-            : { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
+            ? {
+                backgroundColor: colors.terracotta,
+                borderColor: colors.terracotta,
+              }
+            : {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+              },
         ]}
-        accessibilityRole="button"
-        accessibilityLabel={`Filter by tag ${label}`}
-        accessibilityState={{ selected: isSelected }}
       >
         <Text
           style={[
             styles.hashText,
-            { color: isSelected ? '#FFFFFF' : colors.marigoldDark },
+            { color: isSelected ? colors.cream : colors.terracotta },
           ]}
         >
           #
@@ -76,29 +84,24 @@ export const TagChip: React.FC<TagChipProps> = ({
         <Text
           style={[
             styles.label,
-            isSmall ? typography.caption : typography.subtext,
-            { color: isSelected ? '#FFFFFF' : theme.textSecondary },
-            isSelected && { fontWeight: '700' },
+            {
+              color: isSelected ? colors.cream : theme.textSecondary,
+              fontFamily: isSelected ? fontFamilies.sansSemiBold : fontFamilies.sans,
+              fontSize: isSmall ? 12 : 13,
+            },
           ]}
         >
           {label}
         </Text>
-      </TouchableOpacity>
+      </PressableScale>
     );
   }
 
-  // Display mode
+  // Display mode (subtle text tag on cards)
   return (
-    <View
-      style={[
-        styles.chip,
-        styles.chipSmall,
-        { backgroundColor: theme.surfaceSecondary, borderColor: theme.borderSubtle },
-      ]}
-    >
-      <Text style={[styles.hashText, { color: colors.marigoldDark, fontSize: 11 }]}>#</Text>
-      <Text style={[styles.label, typography.caption, { color: theme.textSecondary }]}>
-        {label}
+    <View style={styles.displayTag}>
+      <Text style={[styles.displayText, { color: theme.textMuted }]}>
+        #{label}
       </Text>
     </View>
   );
@@ -108,12 +111,12 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: borderRadius.pill,
+    borderRadius: borderRadius.chip, // radius 10
     borderWidth: 1,
     alignSelf: 'flex-start',
   },
   chipMedium: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.md - 2,
     paddingVertical: spacing.xs + 2,
     marginRight: spacing.sm,
     marginBottom: spacing.xs,
@@ -121,19 +124,25 @@ const styles = StyleSheet.create({
   },
   chipSmall: {
     paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs - 2,
+    paddingVertical: spacing.xs - 1,
     marginRight: spacing.xs + 2,
-    minHeight: 24,
+    minHeight: 26,
   },
   hashText: {
-    fontWeight: '700',
+    fontFamily: fontFamilies.sansBold,
     marginRight: 2,
+    fontSize: 12,
   },
-  label: {
-    fontWeight: '500',
-  },
+  label: {},
   removeBtn: {
     marginLeft: 6,
     padding: 2,
+  },
+  displayTag: {
+    marginRight: spacing.sm,
+  },
+  displayText: {
+    fontFamily: fontFamilies.sans,
+    fontSize: 12,
   },
 });

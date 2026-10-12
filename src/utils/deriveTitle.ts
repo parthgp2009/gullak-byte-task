@@ -54,6 +54,18 @@ export function deriveTitle(
       return `Image ${dateString}`;
     }
 
+    case 'snippet': {
+      const firstLine = content
+        .split('\n')
+        .map((l) => l.trim())
+        .find((l) => l.length > 0);
+
+      if (!firstLine) {
+        return `Snippet ${dateString}`;
+      }
+      return firstLine.length > 60 ? `${firstLine.substring(0, 57)}...` : firstLine;
+    }
+
     default:
       return 'Untitled';
   }

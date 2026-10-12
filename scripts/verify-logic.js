@@ -64,6 +64,11 @@ function deriveTitle(type, title, content, url, dateStr = 'Oct 12, 2026') {
     }
     case 'image':
       return `Image ${dateStr}`;
+    case 'snippet': {
+      const firstLine = content.split('\n').map((l) => l.trim()).find((l) => l.length > 0);
+      if (!firstLine) return `Snippet ${dateStr}`;
+      return firstLine.length > 60 ? `${firstLine.substring(0, 57)}...` : firstLine;
+    }
     default:
       return 'Untitled';
   }
@@ -112,6 +117,8 @@ assert.strictEqual(deriveTitle('note', 'Custom Title', 'First line'), 'Custom Ti
 assert.strictEqual(deriveTitle('note', '', ''), 'Untitled Note');
 assert.strictEqual(deriveTitle('link', '', '', 'https://www.nytimes.com/section/world'), 'nytimes.com');
 assert.strictEqual(deriveTitle('image', '', '', undefined, 'Oct 12, 2026'), 'Image Oct 12, 2026');
+assert.strictEqual(deriveTitle('snippet', '', 'const x = 42;\nconsole.log(x);'), 'const x = 42;');
+assert.strictEqual(deriveTitle('snippet', '', '', undefined, 'Oct 12, 2026'), 'Snippet Oct 12, 2026');
 console.log('✓ deriveTitle passed');
 
 // Test 4: filterItemsBySearch

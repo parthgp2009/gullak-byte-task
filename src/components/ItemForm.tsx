@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -12,17 +11,25 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import * as ImagePicker from 'expo-image-picker';
+import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { Item, ItemType } from '../types';
 import { TagInput } from './TagInput';
 import { ConfirmDialog } from './ConfirmDialog';
+import { PressableScale } from './primitives/PressableScale';
 import { normalizeUrl } from '../utils/normalizeUrl';
 import { deriveTitle } from '../utils/deriveTitle';
 import { normalizeTags } from '../utils/normalizeTags';
 import { useItems } from '../hooks/useItems';
 import { useTheme } from '../hooks/useTheme';
-import { borderRadius, spacing, typography, colors } from '../theme';
+import { borderRadius, spacing, fontFamilies, colors } from '../theme';
 
 interface ItemFormProps {
   initialItem?: Item;
@@ -59,7 +66,17 @@ export const ItemForm: React.FC<ItemFormProps> = ({
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
-  // Check if form has been modified
+  // Save flourish: coin drop animation
+  const coinY = useSharedValue(-60);
+  const coinOpacity = useSharedValue(0);
+
+  const coinAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: coinOpacity.value,
+      transform: [{ translateY: coinY.value }],
+    };
+  });
+
   const hasChanges = () => {
     if (!initialItem) {
       return (
@@ -88,7 +105,6 @@ export const ItemForm: React.FC<ItemFormProps> = ({
     }
   };
 
-  // Gallery picker
   const pickFromGallery = async () => {
     try {
       setInlineError(null);
@@ -108,12 +124,11 @@ export const ItemForm: React.FC<ItemFormProps> = ({
         setImageUri(result.assets[0].uri);
       }
     } catch (err) {
-      console.warn('Failed to pick image from gallery:', err);
+      console.warn('Failed to pick image:', err);
       setInlineError('Unable to open photo gallery.');
     }
   };
 
-  // Camera capture
   const takePhoto = async () => {
     try {
       setInlineError(null);
@@ -146,15 +161,20 @@ export const ItemForm: React.FC<ItemFormProps> = ({
     const trimmedContent = content.trim();
     const trimmedUrl = url.trim();
 
-    // Validation by type
+    // Validation
     if (type === 'note') {
       if (!trimmedTitle && !trimmedContent) {
         setInlineError('A note cannot be empty. Please add a title or some text.');
         return;
       }
+    } else if (type === 'snippet') {
+      if (!trimmedTitle && !trimmedContent) {
+        setInlineError('Please enter some code or text for the snippet.');
+        return;
+      }
     } else if (type === 'link') {
       if (!trimmedUrl) {
-        setInlineError('Please provide a URL to save.');
+        setInlineError('Please enter a URL to save.');
         return;
       }
       const urlResult = normalizeUrl(trimmedUrl);
@@ -164,12 +184,11 @@ export const ItemForm: React.FC<ItemFormProps> = ({
       }
     } else if (type === 'image') {
       if (!imageUri) {
-        setInlineError('Please choose or take a photo to save this image find.');
+        setInlineError('Please select or capture a photo to save this image find.');
         return;
       }
     }
 
-    // Auto-derive title if blank
     const derivedFinalTitle = deriveTitle(
       type,
       trimmedTitle,
@@ -178,13 +197,22 @@ export const ItemForm: React.FC<ItemFormProps> = ({
       initialItem?.createdAt
     );
 
-    const finalUrl =
-      type === 'link' ? normalizeUrl(trimmedUrl).normalizedUrl : undefined;
-
+    const finalUrl = type === 'link' ? normalizeUrl(trimmedUrl).normalizedUrl : undefined;
     const cleanedTags = normalizeTags(tags);
 
     try {
       setIsSaving(true);
+
+      // Save flourish animation: coin drop with medium haptic (< 700ms)
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      coinOpacity.value = withTiming(1, { duration: 150 });
+      coinY.value = withTiming(0, {
+        duration: 380,
+        easing: Easing.out(Easing.back(1.5)),
+      });
+
+      await new Promise((res) => setTimeout(res, 350));
+
       await onSave({
         type,
         title: derivedFinalTitle,
@@ -198,10 +226,11 @@ export const ItemForm: React.FC<ItemFormProps> = ({
       console.error('Save failed:', err);
       setInlineError('Failed to save. Please try again.');
       setIsSaving(false);
+      coinOpacity.value = 0;
+      coinY.value = -60;
     }
   };
 
-  // Preview derived title hint when title input is empty
   const titleHint = !title.trim()
     ? deriveTitle(
         type,
@@ -222,30 +251,49 @@ export const ItemForm: React.FC<ItemFormProps> = ({
         contentContainerStyle={styles.contentContainer}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Inline Error Banner */}
+        {/* Save Flourish Coin Element */}
+        <Animated.View style={[styles.coinFlourish, coinAnimatedStyle]}>
+          <View style={[styles.coinBadge, { backgroundColor: colors.terracotta }]}>
+            <Feather name="arrow-down" size={16} color={colors.cream} />
+          </View>
+        </Animated.View>
+
+        {/* Soft Inline Error Banner */}
         {inlineError && (
-          <View style={[styles.errorBanner, { backgroundColor: theme.dangerBg, borderColor: theme.danger }]}>
+          <View
+            style={[
+              styles.errorBanner,
+              { backgroundColor: theme.dangerBg, borderColor: theme.danger },
+            ]}
+          >
             <Feather name="alert-circle" size={16} color={theme.danger} style={{ marginRight: 8 }} />
-            <Text style={[styles.errorText, typography.subtext, { color: theme.danger }]}>
-              {inlineError}
-            </Text>
+            <Text style={[styles.errorText, { color: theme.danger }]}>{inlineError}</Text>
           </View>
         )}
 
-        {/* Type Selector (Note | Link | Image) */}
+        {/* Type Selector (Note | Link | Image | Snippet) */}
         <View style={styles.section}>
-          <Text style={[styles.sectionLabel, typography.caption, { color: theme.textMuted }]}>
-            ITEM TYPE
-          </Text>
-          <View style={[styles.typeSelectorRow, { backgroundColor: theme.surfaceSecondary, borderColor: theme.border }]}>
-            {(['note', 'link', 'image'] as ItemType[]).map((t) => {
+          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>ITEM TYPE</Text>
+          <View
+            style={[
+              styles.typeSelectorRow,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
+            {(['note', 'link', 'image', 'snippet'] as ItemType[]).map((t) => {
               const isSelected = type === t;
               const icons = {
                 note: 'file-text' as const,
                 link: 'link-2' as const,
                 image: 'image' as const,
+                snippet: 'code' as const,
               };
-              const labels = { note: 'Note', link: 'Link', image: 'Image' };
+              const labels = {
+                note: 'Note',
+                link: 'Link',
+                image: 'Image',
+                snippet: 'Snippet',
+              };
 
               return (
                 <TouchableOpacity
@@ -259,7 +307,10 @@ export const ItemForm: React.FC<ItemFormProps> = ({
                     styles.typeSelectorTab,
                     isSelected && [
                       styles.typeSelectorTabActive,
-                      { backgroundColor: theme.surface, borderColor: theme.border },
+                      {
+                        backgroundColor: theme.surfaceSecondary,
+                        borderColor: colors.terracotta,
+                      },
                     ],
                   ]}
                   accessibilityRole="button"
@@ -268,17 +319,18 @@ export const ItemForm: React.FC<ItemFormProps> = ({
                 >
                   <Feather
                     name={icons[t]}
-                    size={16}
+                    size={14}
                     color={isSelected ? colors.terracotta : theme.textMuted}
-                    style={{ marginRight: 6 }}
+                    style={{ marginRight: 5 }}
                   />
                   <Text
                     style={[
                       styles.typeSelectorLabel,
-                      typography.subtext,
                       {
                         color: isSelected ? theme.text : theme.textMuted,
-                        fontWeight: isSelected ? '700' : '500',
+                        fontFamily: isSelected
+                          ? fontFamilies.sansSemiBold
+                          : fontFamilies.sans,
                       },
                     ]}
                   >
@@ -290,16 +342,16 @@ export const ItemForm: React.FC<ItemFormProps> = ({
           </View>
         </View>
 
-        {/* Link URL Field (shown only for Link) */}
+        {/* Link URL Field */}
         {type === 'link' && (
           <View style={styles.section}>
-            <Text style={[styles.sectionLabel, typography.caption, { color: theme.textMuted }]}>
+            <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>
               WEB LINK (URL) *
             </Text>
             <View
               style={[
                 styles.inputWrapper,
-                { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
+                { backgroundColor: theme.surface, borderColor: theme.border },
               ]}
             >
               <Feather name="globe" size={16} color={theme.textMuted} style={styles.inputIcon} />
@@ -314,38 +366,37 @@ export const ItemForm: React.FC<ItemFormProps> = ({
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"
-                style={[styles.inputField, typography.body, { color: theme.text }]}
+                style={[styles.inputField, { color: theme.text, fontFamily: fontFamilies.sans }]}
               />
             </View>
           </View>
         )}
 
-        {/* Image Picker & Preview (shown only for Image) */}
+        {/* Image Picker */}
         {type === 'image' && (
           <View style={styles.section}>
-            <Text style={[styles.sectionLabel, typography.caption, { color: theme.textMuted }]}>
+            <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>
               IMAGE PHOTO *
             </Text>
-
             {imageUri ? (
               <View style={[styles.imagePreviewContainer, { borderColor: theme.border }]}>
                 <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" />
                 <View style={styles.imageActionsOverlay}>
                   <TouchableOpacity
                     onPress={pickFromGallery}
-                    style={[styles.imageActionBtn, { backgroundColor: 'rgba(0,0,0,0.7)' }]}
+                    style={[styles.imageActionBtn, { backgroundColor: 'rgba(0,0,0,0.75)' }]}
                     accessibilityLabel="Replace photo from gallery"
                   >
-                    <Feather name="refresh-cw" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
-                    <Text style={[typography.caption, { color: '#FFFFFF' }]}>Replace</Text>
+                    <Feather name="refresh-cw" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+                    <Text style={styles.imageActionText}>Replace</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => setImageUri(undefined)}
-                    style={[styles.imageActionBtn, { backgroundColor: 'rgba(198,40,40,0.85)' }]}
+                    style={[styles.imageActionBtn, { backgroundColor: 'rgba(217,83,79,0.85)' }]}
                     accessibilityLabel="Remove photo"
                   >
-                    <Feather name="trash-2" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
-                    <Text style={[typography.caption, { color: '#FFFFFF' }]}>Remove</Text>
+                    <Feather name="trash-2" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+                    <Text style={styles.imageActionText}>Remove</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -356,16 +407,16 @@ export const ItemForm: React.FC<ItemFormProps> = ({
                   onPress={pickFromGallery}
                   style={[
                     styles.pickButton,
-                    { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
+                    { backgroundColor: theme.surface, borderColor: theme.border },
                   ]}
                   accessibilityRole="button"
                   accessibilityLabel="Choose from photo gallery"
                 >
                   <Feather name="image" size={20} color={colors.terracotta} style={{ marginBottom: 6 }} />
-                  <Text style={[typography.subtext, typography.bodyBold, { color: theme.text }]}>
+                  <Text style={[styles.pickButtonTitle, { color: theme.text }]}>
                     Choose from Gallery
                   </Text>
-                  <Text style={[typography.caption, { color: theme.textMuted }]}>
+                  <Text style={[styles.pickButtonSub, { color: theme.textMuted }]}>
                     Select saved photos
                   </Text>
                 </TouchableOpacity>
@@ -375,16 +426,16 @@ export const ItemForm: React.FC<ItemFormProps> = ({
                   onPress={takePhoto}
                   style={[
                     styles.pickButton,
-                    { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
+                    { backgroundColor: theme.surface, borderColor: theme.border },
                   ]}
                   accessibilityRole="button"
                   accessibilityLabel="Take a photo with camera"
                 >
-                  <Feather name="camera" size={20} color={colors.marigoldDark} style={{ marginBottom: 6 }} />
-                  <Text style={[typography.subtext, typography.bodyBold, { color: theme.text }]}>
+                  <Feather name="camera" size={20} color={colors.terracotta} style={{ marginBottom: 6 }} />
+                  <Text style={[styles.pickButtonTitle, { color: theme.text }]}>
                     Take Photo
                   </Text>
-                  <Text style={[typography.caption, { color: theme.textMuted }]}>
+                  <Text style={[styles.pickButtonSub, { color: theme.textMuted }]}>
                     Use device camera
                   </Text>
                 </TouchableOpacity>
@@ -393,14 +444,12 @@ export const ItemForm: React.FC<ItemFormProps> = ({
           </View>
         )}
 
-        {/* Title Field (Optional, auto-derived if blank) */}
+        {/* Title Field */}
         <View style={styles.section}>
           <View style={styles.labelRow}>
-            <Text style={[styles.sectionLabel, typography.caption, { color: theme.textMuted }]}>
-              TITLE
-            </Text>
+            <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>TITLE</Text>
             {titleHint && (
-              <Text style={[styles.derivedHint, typography.caption, { color: colors.marigoldDark }]}>
+              <Text style={[styles.derivedHint, { color: colors.terracotta }]}>
                 (Auto: &quot;{titleHint}&quot;)
               </Text>
             )}
@@ -408,7 +457,7 @@ export const ItemForm: React.FC<ItemFormProps> = ({
           <View
             style={[
               styles.inputWrapper,
-              { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
+              { backgroundColor: theme.surface, borderColor: theme.border },
             ]}
           >
             <TextInput
@@ -417,22 +466,32 @@ export const ItemForm: React.FC<ItemFormProps> = ({
                 setTitle(text);
                 setInlineError(null);
               }}
-              placeholder={titleHint ? `Leave empty to auto-title as "${titleHint}"` : 'Give it a name...'}
+              placeholder={titleHint ? `Leave blank to auto-title as "${titleHint}"` : 'Give it a title...'}
               placeholderTextColor={theme.textMuted}
-              style={[styles.inputField, typography.body, { color: theme.text }]}
+              style={[
+                styles.inputField,
+                { color: theme.text, fontFamily: fontFamilies.sansSemiBold },
+              ]}
             />
           </View>
         </View>
 
-        {/* Content Field: Note body, or optional note for Link/Image */}
+        {/* Content Field: Note body, Snippet code, or optional note for Link/Image */}
         <View style={styles.section}>
-          <Text style={[styles.sectionLabel, typography.caption, { color: theme.textMuted }]}>
-            {type === 'note' ? 'NOTE BODY *' : 'ADDITIONAL NOTES (OPTIONAL)'}
+          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+            {type === 'note'
+              ? 'NOTE BODY *'
+              : type === 'snippet'
+              ? 'CODE / SNIPPET TEXT *'
+              : 'ADDITIONAL NOTES (OPTIONAL)'}
           </Text>
           <View
             style={[
               styles.textAreaWrapper,
-              { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+              },
             ]}
           >
             <TextInput
@@ -443,70 +502,71 @@ export const ItemForm: React.FC<ItemFormProps> = ({
               }}
               placeholder={
                 type === 'note'
-                  ? 'Write your thoughts, paste quotes, recipes...'
+                  ? 'Write thoughts, quotes, recipes...'
+                  : type === 'snippet'
+                  ? 'Paste code, commands, or snippets here...'
                   : 'Add context, thoughts, or reminders...'
               }
               placeholderTextColor={theme.textMuted}
               multiline
               textAlignVertical="top"
-              style={[styles.textArea, typography.body, { color: theme.text }]}
+              style={[
+                styles.textArea,
+                {
+                  color: theme.text,
+                  fontFamily: type === 'snippet' ? fontFamilies.mono : fontFamilies.sans,
+                },
+              ]}
             />
           </View>
         </View>
 
         {/* Tags Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionLabel, typography.caption, { color: theme.textMuted }]}>
-            TAGS
-          </Text>
+          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>TAGS</Text>
           <TagInput tags={tags} onChangeTags={setTags} suggestions={allTags} />
         </View>
 
-        {/* Action Buttons: Save & Cancel */}
-        <View style={styles.footerButtons}>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={handleCancelPress}
-            style={[
-              styles.footerBtn,
-              styles.cancelBtn,
-              { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Cancel"
-          >
-            <Text style={[typography.button, { color: theme.textSecondary }]}>Cancel</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            activeOpacity={0.8}
+        {/* Footer: Full-width Terracotta Primary Button + Quiet Text Cancel */}
+        <View style={styles.footerContainer}>
+          <PressableScale
             onPress={handleSave}
             disabled={isSaving}
+            haptic="medium"
             style={[
-              styles.footerBtn,
-              styles.saveBtn,
+              styles.saveButtonFull,
               {
-                backgroundColor: isSaving ? theme.textMuted : colors.terracotta,
+                backgroundColor: isSaving ? theme.surfaceSecondary : colors.terracotta,
               },
             ]}
             accessibilityRole="button"
-            accessibilityLabel={isEditMode ? 'Update Item' : 'Drop into Gullak'}
+            accessibilityLabel={isEditMode ? 'Save Changes' : 'Drop into Gullak'}
           >
             {isSaving ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
+              <ActivityIndicator color={colors.cream} size="small" />
             ) : (
               <>
                 <Feather
-                  name={isEditMode ? 'check' : 'arrow-down-circle'}
-                  size={18}
-                  color="#FFFFFF"
-                  style={{ marginRight: 6 }}
+                  name={isEditMode ? 'check' : 'arrow-down'}
+                  size={17}
+                  color={colors.cream}
+                  style={{ marginRight: 8 }}
                 />
-                <Text style={[typography.button, { color: '#FFFFFF' }]}>
-                  {isEditMode ? 'Save Changes' : 'Drop In'}
+                <Text style={[styles.saveButtonText, { color: colors.cream }]}>
+                  {isEditMode ? 'Save Changes' : 'Drop in'}
                 </Text>
               </>
             )}
+          </PressableScale>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleCancelPress}
+            style={styles.quietCancelBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel"
+          >
+            <Text style={[styles.quietCancelText, { color: theme.textMuted }]}>Cancel</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -515,7 +575,7 @@ export const ItemForm: React.FC<ItemFormProps> = ({
       <ConfirmDialog
         visible={showDiscardDialog}
         title="Discard changes?"
-        message="You have unsaved changes. If you leave now, your edits will be discarded."
+        message="You have unsaved changes. Discard them?"
         confirmLabel="Discard"
         cancelLabel="Keep Editing"
         isDestructive
@@ -535,24 +595,38 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: spacing.lg,
-    paddingBottom: spacing.xxxl * 2,
+    paddingBottom: spacing.xxxl * 3,
+  },
+  coinFlourish: {
+    alignSelf: 'center',
+    marginBottom: spacing.sm,
+  },
+  coinBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.md,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.chip,
     borderWidth: 1,
     marginBottom: spacing.lg,
   },
   errorText: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 13,
     flex: 1,
-    fontWeight: '600',
   },
   section: {
     marginBottom: spacing.lg,
   },
   sectionLabel: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 11,
     letterSpacing: 0.8,
     marginBottom: spacing.xs,
   },
@@ -563,39 +637,37 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   derivedHint: {
+    fontFamily: fontFamilies.sans,
+    fontSize: 11,
     fontStyle: 'italic',
   },
   typeSelectorRow: {
     flexDirection: 'row',
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.iconBtn,
     borderWidth: 1,
-    padding: 4,
+    padding: 3,
   },
   typeSelectorTab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.sm + 2,
-    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.chip,
     borderWidth: 1,
     borderColor: 'transparent',
-    minHeight: 44,
+    minHeight: 40,
   },
   typeSelectorTabActive: {
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
+    borderWidth: 1,
   },
   typeSelectorLabel: {
-    fontWeight: '600',
+    fontSize: 12,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.iconBtn,
     borderWidth: 1,
     paddingHorizontal: spacing.md,
     minHeight: 48,
@@ -605,15 +677,17 @@ const styles = StyleSheet.create({
   },
   inputField: {
     flex: 1,
+    fontSize: 15,
     paddingVertical: spacing.sm,
   },
   textAreaWrapper: {
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.iconBtn,
     borderWidth: 1,
     padding: spacing.md,
     minHeight: 120,
   },
   textArea: {
+    fontSize: 14,
     minHeight: 100,
     maxHeight: 250,
   },
@@ -625,15 +699,24 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.iconBtn,
     borderWidth: 1,
     padding: spacing.lg,
     minHeight: 110,
   },
+  pickButtonTitle: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 13,
+  },
+  pickButtonSub: {
+    fontFamily: fontFamilies.sans,
+    fontSize: 11,
+    marginTop: 2,
+  },
   imagePreviewContainer: {
     width: '100%',
     height: 220,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.iconBtn,
     overflow: 'hidden',
     borderWidth: 1,
     position: 'relative',
@@ -654,23 +737,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: borderRadius.pill,
+    borderRadius: borderRadius.chip,
   },
-  footerButtons: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.md,
+  imageActionText: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 12,
+    color: '#FFFFFF',
   },
-  footerBtn: {
-    flex: 1,
+  footerContainer: {
+    marginTop: spacing.xl,
+    alignItems: 'center',
+  },
+  saveButtonFull: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: borderRadius.lg,
-    minHeight: 52,
+    borderRadius: borderRadius.button, // radius 10
+    minHeight: 48,
   },
-  cancelBtn: {
-    borderWidth: 1,
+  saveButtonText: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 15,
+    fontWeight: '600',
   },
-  saveBtn: {},
+  quietCancelBtn: {
+    marginTop: spacing.md,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.lg,
+  },
+  quietCancelText: {
+    fontFamily: fontFamilies.sans,
+    fontSize: 14,
+  },
 });

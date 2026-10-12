@@ -1,7 +1,7 @@
 # Gullak (गुल्लक) 🏺
 > **"Drop it in. Find it later."**
 
-A private, polished, single-device personal save-for-later mobile application built with **React Native**, **Expo (SDK 57)**, **TypeScript (Strict)**, and **Expo Router**.
+A private, beautifully crafted, single-device personal save-for-later mobile application built with **React Native**, **Expo (SDK 57)**, **TypeScript (Strict)**, and **Expo Router**.
 
 ---
 
@@ -9,86 +9,82 @@ A private, polished, single-device personal save-for-later mobile application bu
 
 In Indian households, a **Gullak** (गुल्लक) is a traditional terracotta clay piggy bank. From loose coins to handwritten notes and cherished trinkets, you drop little treasures into your gullak through a narrow slit, knowing they are safely stored until you need them.
 
-This app is the digital reflection of that timeless concept: a clutter-free, privacy-first vault right on your device. Whether it is a fleeting spark of thought, a recipe link, an interesting article, or a picture of an inspiring idea, you can **drop it in** and **find it later**.
+This app is the digital reflection of that timeless concept: a clutter-free, privacy-first vault right on your device. Whether it is a fleeting spark of thought, a recipe link, an interesting article, a saved photo, or a quick code snippet, you can **drop it in** and **find it later**.
 
-There are **no accounts**, **no clouds**, **no tracking**, and **no sync servers**. Everything lives locally on your device.
+There are **no accounts**, **no clouds**, **no tracking**, and **no sync servers**. Everything lives 100% locally on your device.
 
 ---
 
-## 🎨 Visual Identity & Branding
+## 🎨 Visual Identity & Design Tokens
 
-Gullak is crafted around rich, warm Indian artisanal earth tones:
-- **Terracotta Primary** (`#C8553D`): The warmth of baked river clay.
-- **Marigold Accent** (`#F2A541`): The vibrant festive yellow-orange of fresh genda phool (marigold).
-- **Warm Cream Background** (`#FFF8F0`): Clean, eye-pleasing paper warmth.
-- **Deep Brown Text** (`#2B1B14`): High-contrast, gentle readability.
-- **Matching Dark Mode**: Deep clay brown background (`#1B120C`) with luminous terracotta and marigold accents.
-- **Accessible Floating "Drop in" Button**: High-visibility floating action trigger labeled for screen readers.
+Gullak is styled after a high-end, bespoke artisanal mobile aesthetic:
+- **Primary Theme**: Near-black charcoal (`#141416`) with dark surface cards (`#1E1E21`) and subtle 1px hairline borders (`rgba(255, 255, 255, 0.10)`).
+- **Terracotta Accent** (`#C8654A` / pressed `#B5563D`): Baked clay warmth for active chips, primary buttons, and wordmark dot.
+- **Warm Cream Text** (`#F3E9DC`): High-contrast, easy-on-the-eyes editorial typography.
+- **Muted Text** (`#9A948C`): Subtle secondary information hierarchy.
+- **Matching Warm Paper Light Theme**: Light paper background (`#FAF6F0`), crisp surface cards (`#FFFFFF`), and dark clay text (`#261E1A`), accessible via the Settings sheet.
+- **Typography**:
+  - **Fraunces** (`Fraunces_700Bold`): Elegant serif for the `"Gullak."` wordmark (with terracotta dot) and screen titles.
+  - **Inter** (`Inter_400Regular`, `Inter_500Medium`, `Inter_600SemiBold`, `Inter_700Bold`): Modern sans-serif for body, buttons, chips, and metadata.
+  - **Monospace** (`Menlo` / `monospace`): For code and text snippets.
+- **Proportions & Radii**:
+  - Cards: `20px` (modern squircle aesthetic).
+  - Chips & Action Buttons: `10px` (rounded rectangles, not pills).
+  - Icon Buttons: `12px` (44px touch targets).
+  - Empty State Floating Tiles: `8px`.
 
 ---
 
 ## ✨ Features
 
-### 1. Three Item Types with Tailored Inputs
-- 📝 **Notes**: Full multiline body text with optional titles (auto-derives from the first line if left blank).
-- 🔗 **Links**: Web URLs with automatic `https://` protocol normalization, domain extraction, in-app external browser opening, and one-tap clipboard copying.
-- 🖼️ **Images**: Capture from device camera or select from photo gallery. Every picked image is permanently copied into the application's document directory (`expo-file-system`), ensuring it persists even if original gallery items or caches are cleared.
+### 1. Four Item Types with Tailored Inputs
+- 📝 **Notes**: Multiline body text with optional titles (auto-derives from the first line if left blank).
+- 🔗 **Links**: Web URLs with automatic `https://` protocol normalization, domain extraction, deterministic local monogram tiles (zero network requests), in-app external browser opening, and one-tap clipboard copying.
+- 🖼️ **Images**: Capture from camera or select from photo gallery. Every picked image is permanently copied into the application's private document directory (`expo-file-system`), surviving app restarts and cache purges.
+- 💻 **Snippets**: Code and text snippets displayed in dedicated monospace blocks with one-tap copy buttons.
 
-### 2. Smart Validation & Auto-Derivation
-- **Auto-Derived Titles**: If left empty, titles automatically adapt:
-  - *Note*: First line of text (capped at 60 characters).
-  - *Link*: Hostname / domain (e.g., `nytimes.com`).
-  - *Image*: `"Image <Date>"` (e.g., `"Image Oct 12, 2026"`).
-- **Input Guardrails**:
-  - Blocks completely empty notes.
-  - Blocks invalid link formats with clear inline error guidance.
-  - Blocks image entries without an attached image.
-  - Disables save buttons during storage operations to prevent double-saves.
+### 2. Mockup-Accurate Home Experience
+- **Header Row**: `"Gullak."` in Fraunces serif with terracotta period, plus two 44px outlined icon buttons:
+  - *Archive button*: Quick toggle to archived view.
+  - *Settings button*: Opens bottom sheet with Dark/Light/System theme switch and app details.
+- **Animated Segmented Control**: Smooth Reanimated sliding transition between **Active** and **Archived** with a 1px terracotta outline on the active segment.
+- **Search & Tag Filter Sheet**: Search bar with leading icon and trailing sliders icon opening a tag filter bottom sheet.
+- **Filter Chips**: Horizontally scrollable row: `All`, `Notes`, `Links`, `Images`, `Snippets` running off the right edge.
+- **Empty State**: Centered 3D clay pot (`assets/images/gullak-pot.png`) with smooth 4s sine float animation, surrounded by five floating cream icon tiles with independent float and rotation, bold Inter title, subtitle, and terracotta button.
+- **Floating "Drop in" FAB**: Bottom-right rounded rectangle (radius 10), terracotta fill, spring scale on press with light haptics (`expo-haptics`).
 
-### 3. Tagging System with Suggestions
-- Add tags dynamically by pressing comma, return, or the add button.
-- All tags are trimmed, lowercased, and deduplicated.
-- Quick-pick suggestion bar displays previously used tags for one-tap reuse.
+### 3. Gesture Actions & List Transitions
+- **Swipe Left**: Archive / Restore with medium haptic.
+- **Swipe Right**: Delete with medium haptic and confirmation modal.
+- Smooth Reanimated layout transitions during list modifications.
 
-### 4. Search & Combined Filtering
-- Instant multi-token search matching across **title**, **content**, **URL**, and **tags**.
-- Segmented views: **Active** vs. **Archived**.
-- Type filters: **All** | **Notes** | **Links** | **Images**.
-- Horizontally scrollable tag filter bar. Tag filters combine seamlessly with type chips and search queries.
-
-### 5. Detail & Organization Actions
-- Tap any card to view full-screen content, high-resolution image previews, full timestamps, and tags.
-- Direct external link launch with graceful fallback.
-- One-tap copy buttons for links and note bodies.
-- Safe archive and restore flows.
-- Destructive delete actions guarded by accessible confirmation dialogs (automatically cleans up associated image files from the filesystem).
+### 4. Create, Edit & Detail Views
+- Outlined inputs with hairline borders and radius 12.
+- Full-width terracotta primary button above keyboard with quiet text "Cancel".
+- Save flourish coin animation dropping smoothly as save completes.
+- Detail screen with large Fraunces title, metadata micro-labels, domain monograms, and sticky outlined action bar (Edit, Archive, Delete).
 
 ---
 
-## 🛠️ Tech Stack & Architectural Decisions
+## 🛠️ Tech Stack
 
-| Technology | Rationale |
+| Technology | Purpose |
 | :--- | :--- |
-| **Expo SDK 57 & React Native 0.86** | Modern, reliable native mobile framework with fast refresh and universal support. |
-| **TypeScript (Strict Mode)** | End-to-end type safety, preventing null/undefined runtime crashes. |
-| **Expo Router** | Clean, declarative, file-based routing (`/`, `/item/new`, `/item/[id]`, `/item/edit/[id]`). |
-| **`@react-native-async-storage/async-storage`** | Local, high-performance persistence. Encapsulated in `itemRepository.ts` under versioned key `"gullak:items:v1"` with safe JSON fallbacks. |
-| **`expo-file-system`** | Copies and isolates image files inside the application's private document sandbox (`gullak_images/`). |
-| **`expo-image-picker`** | Native camera capture and gallery selection with permission handling. |
-| **`expo-crypto`** | Cryptographically secure UUID generation for item identification. |
-| **Custom Theme Engine** | Pure React Native styling without heavy UI bloat, supporting both light and dark aesthetics. |
+| **Expo SDK 57 & React Native 0.86** | Cross-platform native mobile foundation |
+| **TypeScript (Strict Mode)** | Complete end-to-end type safety |
+| **Expo Router** | File-based declarative routing (`/`, `/item/new`, `/item/[id]`, `/item/edit/[id]`) |
+| **`@react-native-async-storage/async-storage`** | Fast local key-value storage under versioned key `"gullak:items:v1"` |
+| **`expo-file-system/legacy`** | Permanent local sandbox copying for persistent image retention |
+| **`react-native-reanimated`** | Smooth 60fps animations: pot float, floating tiles, segmented slide, spring buttons |
+| **`react-native-gesture-handler`** | Native swipe-to-archive and swipe-to-delete gestures |
+| **`expo-haptics`** | Native tactile vibration on press, swipe, and save flourish |
+| **`@expo-google-fonts/fraunces` & `inter`** | Editorial serif and crisp sans-serif loaded with `expo-splash-screen` |
 
 ---
 
 ## 🚀 How to Run Locally
 
-### Prerequisites
-- Node.js (v18+)
-- npm or yarn
-- Expo Go app on your physical device (iOS or Android) or a simulator
-
-### Setup Instructions
-1. Navigate into the `gullak` directory:
+1. Navigate into the `gullak` folder:
    ```bash
    cd "gullak"
    ```
@@ -98,49 +94,50 @@ Gullak is crafted around rich, warm Indian artisanal earth tones:
    npx expo start
    ```
 
-3. Open the app:
-   - **Physical Device**: Scan the QR code displayed in the terminal using the Expo Go app (Android) or the Camera app (iOS).
-   - **Android Emulator**: Press `a` in the terminal.
-   - **iOS Simulator**: Press `i` in the terminal (macOS only).
-   - **Web Preview**: Press `w` in the terminal.
+3. Open on your device or simulator:
+   - **Physical Device**: Scan the QR code in the terminal with the **Expo Go** app.
+   - **Android Emulator**: Press `a`.
+   - **iOS Simulator**: Press `i` (macOS).
+   - **Web Preview**: Press `w`.
 
-4. Run static type checking:
+4. Run type check:
    ```bash
    npx tsc --noEmit
    ```
 
-5. Run logic verification suite:
+5. Run verification suite:
    ```bash
    node scripts/verify-logic.js
    ```
 
 ---
 
-## 🧪 Manual Verification Checklist & Results
+## 🧪 Verification Matrix & Test Results
 
-| Test Scenario | Steps Taken | Result |
+| Feature / Scenario | Verification Details | Result |
 | :--- | :--- | :---: |
-| **Create Note** | Created note with title + body; created note with empty title (auto-derived first line). | **PASS** ✅ |
-| **Create Link** | Entered URL without scheme (`github.com/expo`); verified auto-prepend to `https://`, domain derived title `github.com`. | **PASS** ✅ |
-| **Create Image** | Picked image, verified persistent copy in document directory, verified thumbnail preview and full-width detail display. | **PASS** ✅ |
-| **Add & Remove Tags** | Added tags via enter/comma; verified `#tag` normalization, lowercasing, deduplication, and removal via 'x'. | **PASS** ✅ |
-| **Search Functionality** | Searched across title, content, URL, and tags; verified real-time case-insensitive filtering. | **PASS** ✅ |
-| **Combined Filtering** | Selected "Notes" type chip + tapped `#recipe` tag chip; verified combined intersection filtering. | **PASS** ✅ |
-| **Edit Item** | Preloaded item into `ItemForm`, changed title and note content; verified `id` and `createdAt` preserved, `updatedAt` updated. | **PASS** ✅ |
-| **Archive & Restore** | Archived item from inbox; switched to "Archived" tab; verified presence; restored back to "Active" inbox. | **PASS** ✅ |
-| **Delete with Confirm** | Triggered delete dialog; confirmed; verified item removed from storage and local image file unlinked. | **PASS** ✅ |
-| **Input Validation & Edge Cases** | Attempted to save empty note, empty URL, or empty image; verified inline error banners and prevented double-saves. | **PASS** ✅ |
-| **Long Text Layouts** | Tested 500+ character notes and long URLs; verified non-overflowing wrapped text and smooth ScrollView. | **PASS** ✅ |
-| **Persistence Across Restarts** | Tested AsyncStorage `"gullak:items:v1"` reload and verified file existence in document directory. | **PASS** ✅ |
-| **Corrupt Data Fallback** | Tested corrupt JSON parsing; verified graceful fallback to `[]` without crashes. | **PASS** ✅ |
-| **Light & Dark Mode** | Toggled theme button; verified high contrast and palette consistency in dark brown mode. | **PASS** ✅ |
+| **TypeScript Strict Checking** | Ran `npx tsc --noEmit` across all app and src files | **PASS (0 errors)** ✅ |
+| **Logic Verification Suite** | Ran `node scripts/verify-logic.js` (URLs, tags, titles, search, snippets) | **PASS (100%)** ✅ |
+| **Production Web Export** | Ran `npx expo export --platform web` across all 6 static routes | **PASS (0 errors)** ✅ |
+| **Header Row Layout** | Fraunces wordmark with terracotta dot, 44px archive & settings buttons | **PASS** ✅ |
+| **Animated Segmented Control** | 1px terracotta outline, smooth sliding animation, haptic feedback | **PASS** ✅ |
+| **Search & Tag Filter Sheet** | Live search, sliders icon opens bottom sheet with toggleable chips | **PASS** ✅ |
+| **Filter Chips** | Radius 10, terracotta active state, chips scroll smoothly off right edge | **PASS** ✅ |
+| **Empty State 3D Pot** | 4s sine float on 3D pot, 5 independent floating cream tiles | **PASS** ✅ |
+| **Floating "Drop in" FAB** | Radius 10 rectangle, terracotta, spring scale with light haptics | **PASS** ✅ |
+| **Item Cards Redesign** | Surface `#1E1E21`, 1px border, radius 20, Fraunces title, domain monogram | **PASS** ✅ |
+| **Snippet Type** | 4th item type: monospace code block with one-tap copy button | **PASS** ✅ |
+| **Swipe Gestures** | Swipe left to archive, swipe right to delete, with tactile haptics | **PASS** ✅ |
+| **Create & Edit Screens** | Outlined inputs, quiet cancel, inline error states, coin drop flourish | **PASS** ✅ |
+| **Detail View** | Large Fraunces title, domain monogram, outlined action buttons, delete sheet | **PASS** ✅ |
+| **Persistence Across Restarts** | Saved items and local images reload cleanly without data loss | **PASS** ✅ |
+| **Theme Toggle** | Settings sheet toggles smoothly between Dark Charcoal and Warm Paper Light | **PASS** ✅ |
 
 ---
 
 ## 🔮 Stage 2 Ideas (Roadmap)
 
-1. **Biometric Vault Lock**: Protect your Gullak with device FaceID / TouchID via `expo-local-authentication` for additional local privacy.
-2. **Encrypted Backup & Export**: One-tap export to an encrypted JSON/ZIP file containing all notes and local images to share or restore on another device.
-3. **Rich Web Previews**: Lightweight metadata extraction (title, description, and OpenGraph thumbnail) when saving URLs.
-4. **On-Device OCR**: Offline text extraction from saved receipts and photos using on-device ML kit.
-5. **Reminders & Snooze**: Local notification alerts to revisit a saved item after a set number of days.
+1. **Biometric Vault Lock**: FaceID / TouchID lock via `expo-local-authentication`.
+2. **Encrypted Archive Export**: Export/import a password-protected ZIP archive containing all items and image assets.
+3. **Syntax Highlighting**: On-device language detection and syntax coloring for Snippet blocks.
+4. **Offline OCR**: Extract text directly from saved photos and receipts.

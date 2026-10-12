@@ -17,60 +17,62 @@ import { useItems } from '../src/hooks/useItems';
 import { useTheme } from '../src/hooks/useTheme';
 import { ItemCard } from '../src/components/ItemCard';
 import { TypeChip } from '../src/components/TypeChip';
-import { TagChip } from '../src/components/TagChip';
 import { SearchBar } from '../src/components/SearchBar';
 import { EmptyState } from '../src/components/EmptyState';
 import { ConfirmDialog } from '../src/components/ConfirmDialog';
+import { SegmentedControl } from '../src/components/SegmentedControl';
+import { IconButton } from '../src/components/primitives/IconButton';
+import { FloatingDropInButton } from '../src/components/FloatingDropInButton';
+import { SettingsSheet } from '../src/components/SettingsSheet';
+import { TagFilterSheet } from '../src/components/TagFilterSheet';
 import { filterItemsBySearch } from '../src/utils/search';
-import { borderRadius, spacing, typography, colors, shadows } from '../src/theme';
+import { borderRadius, spacing, fontFamilies, colors, shadows } from '../src/theme';
 
 export default function InboxScreen() {
   const router = useRouter();
-  const { theme, isDark, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const { items, isLoading, deleteItem, archiveItem, restoreItem, allTags } = useItems();
 
   const [activeTab, setActiveTab] = useState<TabType>('active');
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<ItemFilterType>('all');
+  const [typeFilter, setTypeFilter] = useState<ItemFilterType | 'snippet'>('all');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
-  // Selected item for long-press / action menu
+  // Sheets and Modals
+  const [showSettings, setShowSettings] = useState(false);
+  const [showTagFilterSheet, setShowTagFilterSheet] = useState(false);
   const [menuItem, setMenuItem] = useState<Item | null>(null);
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
 
   // Filter and sort items
   const filteredItems = useMemo(() => {
-    // 1. Filter by Active vs Archived
+    // 1. Tab filter (Active vs Archived)
     let result = items.filter((item) =>
       activeTab === 'active' ? !item.archived : item.archived
     );
 
-    // 2. Filter by Type
+    // 2. Type filter
     if (typeFilter !== 'all') {
       result = result.filter((item) => item.type === typeFilter);
     }
 
-    // 3. Filter by Selected Tag
+    // 3. Tag filter
     if (selectedTag) {
       result = result.filter(
         (item) => item.tags && item.tags.includes(selectedTag.toLowerCase())
       );
     }
 
-    // 4. Filter by Search Query
+    // 4. Search query
     if (searchQuery.trim()) {
       result = filterItemsBySearch(result, searchQuery);
     }
 
-    // 5. Sort by updatedAt descending
+    // 5. Sorted by updatedAt desc
     result.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
     return result;
   }, [items, activeTab, typeFilter, selectedTag, searchQuery]);
-
-  const toggleTagFilter = (tag: string) => {
-    setSelectedTag((prev) => (prev === tag ? null : tag));
-  };
 
   const handleAction = async (action: 'archive' | 'restore' | 'delete' | 'edit') => {
     if (!menuItem) return;
@@ -97,125 +99,55 @@ export default function InboxScreen() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
-      {/* Top Header */}
+      {/* 1. Header Row matching mockup: Wordmark + Terracotta dot + 2 Icon Buttons */}
       <View style={styles.header}>
-        <View style={styles.headerTitleGroup}>
-          <Text style={[styles.appTitle, typography.display, { color: colors.terracotta }]}>
-            Gullak
-          </Text>
-          <View style={[styles.coinDot, { backgroundColor: colors.marigold }]} />
+        <View style={styles.wordmarkGroup}>
+          <Text style={[styles.wordmark, { color: theme.text }]}>Gullak</Text>
+          <View style={[styles.wordmarkDot, { backgroundColor: colors.terracotta }]} />
         </View>
 
         <View style={styles.headerRightActions}>
-          {/* Light / Dark Mode Toggle */}
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={toggleTheme}
-            style={[
-              styles.iconBtn,
-              { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-          >
-            <Feather
-              name={isDark ? 'sun' : 'moon'}
-              size={18}
-              color={isDark ? colors.marigold : colors.terracotta}
-            />
-          </TouchableOpacity>
+          {/* Archive Toggle Button */}
+          <IconButton
+            icon="archive"
+            accessibilityLabel="View archived items"
+            active={activeTab === 'archived'}
+            onPress={() => setActiveTab((prev) => (prev === 'active' ? 'archived' : 'active'))}
+            style={{ marginRight: spacing.sm }}
+          />
+
+          {/* Settings Button */}
+          <IconButton
+            icon="settings"
+            accessibilityLabel="Open settings"
+            onPress={() => setShowSettings(true)}
+          />
         </View>
       </View>
 
-      {/* Segmented Control: Active | Archived */}
-      <View style={styles.tabBarContainer}>
-        <View
-          style={[
-            styles.segmentedControl,
-            { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
-          ]}
-        >
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setActiveTab('active')}
-            style={[
-              styles.segmentTab,
-              activeTab === 'active' && [
-                styles.segmentTabActive,
-                { backgroundColor: theme.surface, borderColor: theme.border },
-              ],
-            ]}
-            accessibilityRole="tab"
-            accessibilityLabel="Active items tab"
-            accessibilityState={{ selected: activeTab === 'active' }}
-          >
-            <Feather
-              name="inbox"
-              size={15}
-              color={activeTab === 'active' ? colors.terracotta : theme.textMuted}
-              style={{ marginRight: 6 }}
-            />
-            <Text
-              style={[
-                typography.subtext,
-                {
-                  color: activeTab === 'active' ? theme.text : theme.textMuted,
-                  fontWeight: activeTab === 'active' ? '700' : '500',
-                },
-              ]}
-            >
-              Active
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setActiveTab('archived')}
-            style={[
-              styles.segmentTab,
-              activeTab === 'archived' && [
-                styles.segmentTabActive,
-                { backgroundColor: theme.surface, borderColor: theme.border },
-              ],
-            ]}
-            accessibilityRole="tab"
-            accessibilityLabel="Archived items tab"
-            accessibilityState={{ selected: activeTab === 'archived' }}
-          >
-            <Feather
-              name="archive"
-              size={15}
-              color={activeTab === 'archived' ? colors.terracotta : theme.textMuted}
-              style={{ marginRight: 6 }}
-            />
-            <Text
-              style={[
-                typography.subtext,
-                {
-                  color: activeTab === 'archived' ? theme.text : theme.textMuted,
-                  fontWeight: activeTab === 'archived' ? '700' : '500',
-                },
-              ]}
-            >
-              Archived
-            </Text>
-          </TouchableOpacity>
-        </View>
+      {/* 2. Segmented Control */}
+      <View style={styles.segmentedContainer}>
+        <SegmentedControl activeTab={activeTab} onChangeTab={setActiveTab} />
       </View>
 
-      {/* Search Bar */}
-      <View style={styles.searchSection}>
-        <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
+      {/* 3. Search Bar with Filter Sliders Icon */}
+      <View style={styles.searchContainer}>
+        <SearchBar
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          onFilterPress={() => setShowTagFilterSheet(true)}
+          isFilterActive={selectedTag !== null}
+        />
       </View>
 
-      {/* Filter Row: Type Chips */}
-      <View style={styles.filterTypesRow}>
+      {/* 4. Filter Chips Row running off right edge */}
+      <View style={styles.filterChipsRow}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterTypesScroll}
+          contentContainerStyle={styles.filterChipsScroll}
         >
-          {(['all', 'note', 'link', 'image'] as ItemFilterType[]).map((t) => (
+          {(['all', 'note', 'link', 'image', 'snippet'] as const).map((t) => (
             <TypeChip
               key={t}
               type={t}
@@ -226,34 +158,10 @@ export default function InboxScreen() {
         </ScrollView>
       </View>
 
-      {/* Filter Row: Tags */}
-      {allTags.length > 0 && (
-        <View style={styles.filterTagsRow}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterTagsScroll}
-          >
-            {allTags.map((tag) => (
-              <TagChip
-                key={tag}
-                label={tag}
-                variant="selectable"
-                isSelected={selectedTag === tag}
-                onPress={() => toggleTagFilter(tag)}
-              />
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      {/* Main Content List / Loading / Empty States */}
+      {/* 5. Content Area: Empty State or Cards List */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.terracotta} />
-          <Text style={[styles.loadingText, typography.subtext, { color: theme.textSecondary }]}>
-            Opening your Gullak...
-          </Text>
         </View>
       ) : (
         <FlatList
@@ -270,6 +178,14 @@ export default function InboxScreen() {
               onPress={() => router.push(`/item/${item.id}`)}
               onLongPress={() => setMenuItem(item)}
               onOptionsPress={() => setMenuItem(item)}
+              onSwipeArchive={() => {
+                if (item.archived) {
+                  restoreItem(item.id);
+                } else {
+                  archiveItem(item.id);
+                }
+              }}
+              onSwipeDelete={() => setItemToDelete(item)}
             />
           )}
           ListEmptyComponent={() => {
@@ -282,7 +198,7 @@ export default function InboxScreen() {
                     setTypeFilter('all');
                     setSelectedTag(null);
                   }}
-                  actionLabel="Clear all filters"
+                  actionLabel="Clear filters"
                 />
               );
             }
@@ -293,27 +209,30 @@ export default function InboxScreen() {
               <EmptyState
                 type="inbox"
                 onActionPress={() => router.push('/item/new')}
-                actionLabel="Drop in your first find"
+                actionLabel="+ Drop in your first find"
               />
             );
           }}
         />
       )}
 
-      {/* Floating Action Button: "Drop in" */}
-      <TouchableOpacity
-        activeOpacity={0.88}
-        onPress={() => router.push('/item/new')}
-        style={[styles.fab, shadows.fab, { backgroundColor: colors.terracotta }]}
-        accessibilityRole="button"
-        accessibilityLabel="Drop in"
-        accessibilityHint="Opens screen to save a new note, link, or image"
-      >
-        <Feather name="plus" size={22} color="#FFFFFF" style={{ marginRight: 6 }} />
-        <Text style={[styles.fabLabel, typography.button]}>Drop in</Text>
-      </TouchableOpacity>
+      {/* 6. Floating Action Button: "Drop in" */}
+      <FloatingDropInButton onPress={() => router.push('/item/new')} />
 
-      {/* Quick Action Modal for Card */}
+      {/* Settings Bottom Sheet */}
+      <SettingsSheet visible={showSettings} onClose={() => setShowSettings(false)} />
+
+      {/* Tag Filter Bottom Sheet */}
+      <TagFilterSheet
+        visible={showTagFilterSheet}
+        onClose={() => setShowTagFilterSheet(false)}
+        tags={allTags}
+        selectedTag={selectedTag}
+        onSelectTag={(tag) => setSelectedTag(tag)}
+        onClearTag={() => setSelectedTag(null)}
+      />
+
+      {/* Card Quick Action Modal */}
       <Modal
         visible={menuItem !== null}
         transparent
@@ -333,10 +252,7 @@ export default function InboxScreen() {
             ]}
           >
             <View style={styles.menuHeader}>
-              <Text
-                numberOfLines={1}
-                style={[typography.h3, { color: theme.text, flex: 1 }]}
-              >
+              <Text numberOfLines={1} style={[styles.menuItemTitle, { color: theme.text }]}>
                 {menuItem?.title}
               </Text>
             </View>
@@ -348,8 +264,8 @@ export default function InboxScreen() {
               accessibilityRole="button"
               accessibilityLabel="Edit item"
             >
-              <Feather name="edit-2" size={18} color={theme.text} style={styles.menuIcon} />
-              <Text style={[typography.body, { color: theme.text }]}>Edit Item</Text>
+              <Feather name="edit-2" size={17} color={theme.text} style={styles.menuIcon} />
+              <Text style={[styles.menuLabel, { color: theme.text }]}>Edit Item</Text>
             </TouchableOpacity>
 
             {menuItem?.archived ? (
@@ -358,10 +274,12 @@ export default function InboxScreen() {
                 onPress={() => handleAction('restore')}
                 style={styles.menuItem}
                 accessibilityRole="button"
-                accessibilityLabel="Restore item to inbox"
+                accessibilityLabel="Restore to inbox"
               >
-                <Feather name="inbox" size={18} color={colors.marigoldDark} style={styles.menuIcon} />
-                <Text style={[typography.body, { color: colors.marigoldDark }]}>Restore to Inbox</Text>
+                <Feather name="inbox" size={17} color={colors.terracotta} style={styles.menuIcon} />
+                <Text style={[styles.menuLabel, { color: colors.terracotta }]}>
+                  Restore to Inbox
+                </Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
@@ -371,8 +289,8 @@ export default function InboxScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Archive item"
               >
-                <Feather name="archive" size={18} color={theme.textSecondary} style={styles.menuIcon} />
-                <Text style={[typography.body, { color: theme.textSecondary }]}>Archive</Text>
+                <Feather name="archive" size={17} color={theme.textSecondary} style={styles.menuIcon} />
+                <Text style={[styles.menuLabel, { color: theme.textSecondary }]}>Archive</Text>
               </TouchableOpacity>
             )}
 
@@ -383,8 +301,8 @@ export default function InboxScreen() {
               accessibilityRole="button"
               accessibilityLabel="Delete item"
             >
-              <Feather name="trash-2" size={18} color={theme.danger} style={styles.menuIcon} />
-              <Text style={[typography.body, { color: theme.danger, fontWeight: '600' }]}>
+              <Feather name="trash-2" size={17} color={theme.danger} style={styles.menuIcon} />
+              <Text style={[styles.menuLabel, { color: theme.danger, fontWeight: '600' }]}>
                 Delete Item
               </Text>
             </TouchableOpacity>
@@ -392,7 +310,7 @@ export default function InboxScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         visible={itemToDelete !== null}
         title="Delete item?"
@@ -416,79 +334,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xs,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
   },
-  headerTitleGroup: {
+  wordmarkGroup: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
-  appTitle: {
-    letterSpacing: -0.5,
+  wordmark: {
+    fontFamily: fontFamilies.serif,
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: -0.3,
   },
-  coinDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginLeft: 4,
+  wordmarkDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    marginLeft: 3,
     marginBottom: 4,
   },
   headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  iconBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabBarContainer: {
+  segmentedContainer: {
     paddingHorizontal: spacing.lg,
     marginTop: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  searchContainer: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  filterChipsRow: {
     marginBottom: spacing.sm,
   },
-  segmentedControl: {
-    flexDirection: 'row',
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    padding: 3,
-  },
-  segmentTab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    minHeight: 38,
-  },
-  segmentTabActive: {
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  searchSection: {
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
-  },
-  filterTypesRow: {
-    marginBottom: spacing.xs,
-  },
-  filterTypesScroll: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 2,
-  },
-  filterTagsRow: {
-    marginBottom: spacing.xs,
-  },
-  filterTagsScroll: {
+  filterChipsScroll: {
     paddingHorizontal: spacing.lg,
     paddingVertical: 2,
   },
@@ -497,32 +379,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  loadingText: {
-    marginTop: spacing.md,
-  },
   listContent: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xs,
-    paddingBottom: spacing.xxxl * 3,
+    paddingBottom: spacing.xxxl * 4,
   },
   listEmptyContent: {
     flexGrow: 1,
     justifyContent: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: spacing.xl,
-    right: spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.pill,
-    minHeight: 52,
-  },
-  fabLabel: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+    paddingHorizontal: 0,
   },
   menuBackdrop: {
     flex: 1,
@@ -530,28 +395,34 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   menuContainer: {
-    borderRadius: borderRadius.xl,
+    borderRadius: borderRadius.card,
     borderWidth: 1,
     padding: spacing.md,
     marginBottom: spacing.lg,
   },
   menuHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
     marginBottom: spacing.xs,
+  },
+  menuItemTitle: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 16,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.sm,
-    minHeight: 48,
+    minHeight: 46,
   },
   menuIcon: {
     marginRight: spacing.md,
+  },
+  menuLabel: {
+    fontFamily: fontFamilies.sans,
+    fontSize: 15,
   },
 });

@@ -11,6 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useItems } from '../../src/hooks/useItems';
 import { useTheme } from '../../src/hooks/useTheme';
@@ -18,8 +19,10 @@ import { ItemTypeBadge } from '../../src/components/TypeChip';
 import { TagChip } from '../../src/components/TagChip';
 import { EmptyState } from '../../src/components/EmptyState';
 import { ConfirmDialog } from '../../src/components/ConfirmDialog';
+import { DomainMonogram } from '../../src/components/primitives/DomainMonogram';
+import { PressableScale } from '../../src/components/primitives/PressableScale';
 import { formatFullDateTime } from '../../src/utils/formatDate';
-import { borderRadius, spacing, typography, colors, shadows } from '../../src/theme';
+import { borderRadius, spacing, fontFamilies, colors, shadows } from '../../src/theme';
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -48,6 +51,7 @@ export default function ItemDetailScreen() {
   const handleCopy = async (text: string, label: string) => {
     try {
       await Clipboard.setStringAsync(text);
+      Haptics.selectionAsync().catch(() => {});
       setCopiedMessage(`${label} copied!`);
       setTimeout(() => setCopiedMessage(null), 2500);
     } catch (err) {
@@ -71,6 +75,7 @@ export default function ItemDetailScreen() {
   };
 
   const handleToggleArchive = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (item.archived) {
       await restoreItem(item.id);
     } else {
@@ -81,9 +86,21 @@ export default function ItemDetailScreen() {
 
   const handleDelete = async () => {
     setShowDeleteConfirm(false);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     await deleteItem(item.id);
     router.back();
   };
+
+  // Clean domain name for link item
+  const cleanDomain = React.useMemo(() => {
+    if (item.type !== 'link' || !item.url) return '';
+    try {
+      const parsed = new URL(/^https?:\/\//i.test(item.url) ? item.url : `https://${item.url}`);
+      return parsed.hostname.replace(/^www\./i, '');
+    } catch {
+      return item.url;
+    }
+  }, [item.type, item.url]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -95,22 +112,33 @@ export default function ItemDetailScreen() {
         {/* Copied Feedback Toast */}
         {copiedMessage && (
           <View style={[styles.toast, { backgroundColor: colors.terracotta }]}>
-            <Feather name="check" size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
-            <Text style={[typography.subtext, { color: '#FFFFFF', fontWeight: '600' }]}>
-              {copiedMessage}
-            </Text>
+            <Feather name="check" size={14} color={colors.cream} style={{ marginRight: 6 }} />
+            <Text style={[styles.toastText, { color: colors.cream }]}>{copiedMessage}</Text>
           </View>
         )}
 
-        {/* Top Meta: Type Badge + Archive Status */}
+        {/* Top Meta: Type Tile + Dates */}
         <View style={styles.metaRow}>
-          <ItemTypeBadge type={item.type} />
-          {item.archived && (
-            <View style={[styles.archivedIndicator, { backgroundColor: theme.surfaceSecondary }]}>
-              <Feather name="archive" size={12} color={colors.marigoldDark} style={{ marginRight: 4 }} />
-              <Text style={[typography.caption, { color: colors.marigoldDark, fontWeight: '700' }]}>
-                ARCHIVED
+          <View style={styles.metaLeft}>
+            {item.type === 'link' ? (
+              <DomainMonogram domain={cleanDomain || 'link'} size={34} />
+            ) : (
+              <ItemTypeBadge type={item.type} />
+            )}
+            <View style={styles.metaTextGroup}>
+              <Text style={[styles.metaTypeLabel, { color: theme.textSecondary }]}>
+                {item.type.toUpperCase()}
               </Text>
+              <Text style={[styles.metaDateLabel, { color: theme.textMuted }]}>
+                {formatFullDateTime(item.createdAt)}
+              </Text>
+            </View>
+          </View>
+
+          {item.archived && (
+            <View style={[styles.archivedIndicator, { borderColor: theme.border }]}>
+              <Feather name="archive" size={12} color={colors.terracotta} style={{ marginRight: 4 }} />
+              <Text style={[styles.archivedText, { color: colors.terracotta }]}>ARCHIVED</Text>
             </View>
           )}
         </View>
@@ -120,7 +148,7 @@ export default function ItemDetailScreen() {
           <View
             style={[
               styles.imageContainer,
-              { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
+              { backgroundColor: theme.surface, borderColor: theme.border },
             ]}
           >
             {item.imageUri && !imageError ? (
@@ -132,8 +160,8 @@ export default function ItemDetailScreen() {
               />
             ) : (
               <View style={styles.imagePlaceholder}>
-                <Feather name="image" size={48} color={theme.textMuted} />
-                <Text style={[typography.subtext, { color: theme.textMuted, marginTop: 8 }]}>
+                <Feather name="image" size={42} color={theme.textMuted} />
+                <Text style={[styles.placeholderText, { color: theme.textMuted }]}>
                   Image could not be loaded
                 </Text>
               </View>
@@ -141,17 +169,15 @@ export default function ItemDetailScreen() {
           </View>
         )}
 
-        {/* Title */}
-        <Text style={[styles.title, typography.h1, { color: theme.text }]}>
-          {item.title}
-        </Text>
+        {/* Large Fraunces Title */}
+        <Text style={[styles.title, { color: theme.text }]}>{item.title}</Text>
 
-        {/* Link URL Box (for link items) */}
+        {/* Link URL Card */}
         {item.type === 'link' && item.url && (
           <View
             style={[
               styles.urlCard,
-              { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
+              { backgroundColor: theme.surface, borderColor: theme.border },
             ]}
           >
             <TouchableOpacity
@@ -161,11 +187,8 @@ export default function ItemDetailScreen() {
               accessibilityRole="link"
               accessibilityLabel={`Open link ${item.url}`}
             >
-              <Feather name="external-link" size={18} color={colors.terracotta} style={{ marginRight: 8 }} />
-              <Text
-                numberOfLines={2}
-                style={[styles.urlText, typography.body, { color: colors.terracotta }]}
-              >
+              <Feather name="external-link" size={16} color={colors.terracotta} style={{ marginRight: 8 }} />
+              <Text numberOfLines={2} style={[styles.urlText, { color: colors.terracotta }]}>
                 {item.url}
               </Text>
             </TouchableOpacity>
@@ -174,20 +197,48 @@ export default function ItemDetailScreen() {
               activeOpacity={0.7}
               onPress={() => handleCopy(item.url || '', 'Link URL')}
               style={[
-                styles.copyUrlBtn,
-                { backgroundColor: theme.surface, borderColor: theme.border },
+                styles.copyBtn,
+                { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
               ]}
               accessibilityRole="button"
               accessibilityLabel="Copy URL"
             >
-              <Feather name="copy" size={14} color={theme.textSecondary} style={{ marginRight: 4 }} />
-              <Text style={[typography.caption, { color: theme.textSecondary }]}>Copy</Text>
+              <Feather name="copy" size={13} color={theme.textSecondary} style={{ marginRight: 4 }} />
+              <Text style={[styles.copyBtnText, { color: theme.textSecondary }]}>Copy</Text>
             </TouchableOpacity>
           </View>
         )}
 
+        {/* Monospace Code Block for Snippets */}
+        {item.type === 'snippet' && item.content && (
+          <View
+            style={[
+              styles.snippetCard,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
+            <View style={styles.snippetHeader}>
+              <Text style={[styles.snippetHeaderLabel, { color: theme.textMuted }]}>
+                CODE / TEXT SNIPPET
+              </Text>
+              <TouchableOpacity
+                onPress={() => handleCopy(item.content, 'Snippet')}
+                style={styles.copyBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Copy snippet text"
+              >
+                <Feather name="copy" size={13} color={theme.textSecondary} style={{ marginRight: 4 }} />
+                <Text style={[styles.copyBtnText, { color: theme.textSecondary }]}>Copy</Text>
+              </TouchableOpacity>
+            </View>
+            <Text selectable style={[styles.snippetContent, { color: theme.text }]}>
+              {item.content}
+            </Text>
+          </View>
+        )}
+
         {/* Note / Body Content */}
-        {item.content?.trim().length > 0 && (
+        {item.type !== 'snippet' && item.content?.trim().length > 0 && (
           <View
             style={[
               styles.contentCard,
@@ -195,23 +246,20 @@ export default function ItemDetailScreen() {
             ]}
           >
             <View style={styles.contentHeader}>
-              <Text style={[typography.caption, { color: theme.textMuted, letterSpacing: 0.5 }]}>
-                {item.type === 'note' ? 'NOTE' : 'NOTES & DESCRIPTION'}
+              <Text style={[styles.contentHeaderLabel, { color: theme.textMuted }]}>
+                {item.type === 'note' ? 'NOTE BODY' : 'ADDITIONAL NOTES'}
               </Text>
               <TouchableOpacity
                 onPress={() => handleCopy(item.content, 'Note')}
-                style={styles.copyNoteBtn}
+                style={styles.copyBtn}
                 accessibilityRole="button"
                 accessibilityLabel="Copy note text"
               >
-                <Feather name="copy" size={13} color={theme.textMuted} style={{ marginRight: 4 }} />
-                <Text style={[typography.caption, { color: theme.textMuted }]}>Copy text</Text>
+                <Feather name="copy" size={13} color={theme.textSecondary} style={{ marginRight: 4 }} />
+                <Text style={[styles.copyBtnText, { color: theme.textSecondary }]}>Copy</Text>
               </TouchableOpacity>
             </View>
-            <Text
-              selectable
-              style={[styles.bodyText, typography.body, { color: theme.text }]}
-            >
+            <Text selectable style={[styles.bodyText, { color: theme.text }]}>
               {item.content}
             </Text>
           </View>
@@ -220,9 +268,7 @@ export default function ItemDetailScreen() {
         {/* Tags */}
         {item.tags && item.tags.length > 0 && (
           <View style={styles.tagsSection}>
-            <Text style={[styles.sectionHeading, typography.caption, { color: theme.textMuted }]}>
-              TAGS
-            </Text>
+            <Text style={[styles.sectionHeading, { color: theme.textSecondary }]}>TAGS</Text>
             <View style={styles.tagChipsList}>
               {item.tags.map((tag) => (
                 <TagChip key={tag} label={tag} size="md" />
@@ -233,52 +279,46 @@ export default function ItemDetailScreen() {
 
         {/* Timestamps */}
         <View style={[styles.timestampContainer, { borderColor: theme.borderSubtle }]}>
-          <View style={styles.timeRow}>
-            <Feather name="calendar" size={13} color={theme.textMuted} style={{ marginRight: 6 }} />
-            <Text style={[typography.caption, { color: theme.textMuted }]}>
-              Dropped in: {formatFullDateTime(item.createdAt)}
-            </Text>
-          </View>
+          <Text style={[styles.timeRowText, { color: theme.textMuted }]}>
+            Saved on {formatFullDateTime(item.createdAt)}
+          </Text>
           {item.updatedAt !== item.createdAt && (
-            <View style={[styles.timeRow, { marginTop: 4 }]}>
-              <Feather name="clock" size={13} color={theme.textMuted} style={{ marginRight: 6 }} />
-              <Text style={[typography.caption, { color: theme.textMuted }]}>
-                Updated: {formatFullDateTime(item.updatedAt)}
-              </Text>
-            </View>
+            <Text style={[styles.timeRowText, { color: theme.textMuted, marginTop: 4 }]}>
+              Last modified {formatFullDateTime(item.updatedAt)}
+            </Text>
           )}
         </View>
       </ScrollView>
 
-      {/* Bottom Sticky Action Bar */}
+      {/* Outlined Icon-Button Action Bar (Sticky at bottom) */}
       <View
         style={[
           styles.bottomBar,
-          shadows.cardHover,
-          { backgroundColor: theme.surface, borderTopColor: theme.border },
+          {
+            backgroundColor: theme.surface,
+            borderTopColor: theme.border,
+          },
         ]}
       >
         {/* Edit Button */}
-        <TouchableOpacity
-          activeOpacity={0.7}
+        <PressableScale
           onPress={() => router.push(`/item/edit/${item.id}`)}
           style={[
-            styles.actionBtn,
+            styles.actionButton,
             { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
           ]}
           accessibilityRole="button"
           accessibilityLabel="Edit item"
         >
           <Feather name="edit-2" size={16} color={theme.text} style={{ marginRight: 6 }} />
-          <Text style={[typography.button, { color: theme.text }]}>Edit</Text>
-        </TouchableOpacity>
+          <Text style={[styles.actionBtnText, { color: theme.text }]}>Edit</Text>
+        </PressableScale>
 
         {/* Archive / Restore Button */}
-        <TouchableOpacity
-          activeOpacity={0.7}
+        <PressableScale
           onPress={handleToggleArchive}
           style={[
-            styles.actionBtn,
+            styles.actionButton,
             { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
           ]}
           accessibilityRole="button"
@@ -287,38 +327,37 @@ export default function ItemDetailScreen() {
           <Feather
             name={item.archived ? 'inbox' : 'archive'}
             size={16}
-            color={colors.marigoldDark}
+            color={colors.terracotta}
             style={{ marginRight: 6 }}
           />
-          <Text style={[typography.button, { color: colors.marigoldDark }]}>
+          <Text style={[styles.actionBtnText, { color: colors.terracotta }]}>
             {item.archived ? 'Restore' : 'Archive'}
           </Text>
-        </TouchableOpacity>
+        </PressableScale>
 
         {/* Delete Button */}
-        <TouchableOpacity
-          activeOpacity={0.7}
+        <PressableScale
           onPress={() => setShowDeleteConfirm(true)}
           style={[
-            styles.actionBtn,
-            styles.deleteBtn,
+            styles.actionButton,
+            styles.deleteButton,
             { backgroundColor: theme.dangerBg, borderColor: theme.danger },
           ]}
           accessibilityRole="button"
           accessibilityLabel="Delete item"
         >
           <Feather name="trash-2" size={16} color={theme.danger} style={{ marginRight: 6 }} />
-          <Text style={[typography.button, { color: theme.danger }]}>Delete</Text>
-        </TouchableOpacity>
+          <Text style={[styles.actionBtnText, { color: theme.danger }]}>Delete</Text>
+        </PressableScale>
       </View>
 
-      {/* Delete Confirmation Modal */}
+      {/* Styled Delete Confirmation Modal */}
       <ConfirmDialog
         visible={showDeleteConfirm}
         title="Delete item?"
-        message={`Are you sure you want to permanently delete "${item.title}"? This will remove all local files and cannot be undone.`}
+        message={`Are you sure you want to permanently delete "${item.title}"? This cannot be undone.`}
         confirmLabel="Delete"
-        cancelLabel="Cancel"
+        cancelLabel="Keep"
         isDestructive
         onConfirm={handleDelete}
         onCancel={() => setShowDeleteConfirm(false)}
@@ -343,27 +382,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.pill,
+    borderRadius: borderRadius.chip,
     alignSelf: 'center',
     marginBottom: spacing.md,
+  },
+  toastText: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 13,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  metaLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  metaTextGroup: {
+    marginLeft: spacing.sm + 2,
+  },
+  metaTypeLabel: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 11,
+    letterSpacing: 0.8,
+  },
+  metaDateLabel: {
+    fontFamily: fontFamilies.sans,
+    fontSize: 12,
+    marginTop: 1,
   },
   archivedIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.xs,
-    borderRadius: borderRadius.pill,
+    borderRadius: borderRadius.chip,
+    borderWidth: 1,
+  },
+  archivedText: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 11,
   },
   imageContainer: {
     width: '100%',
-    height: 260,
-    borderRadius: borderRadius.lg,
+    height: 240,
+    borderRadius: borderRadius.card, // radius 20
     overflow: 'hidden',
     borderWidth: 1,
     marginBottom: spacing.lg,
@@ -378,12 +443,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  placeholderText: {
+    fontFamily: fontFamilies.sans,
+    fontSize: 13,
+    marginTop: 8,
+  },
   title: {
-    marginBottom: spacing.md,
-    lineHeight: 30,
+    fontFamily: fontFamilies.serif,
+    fontSize: 24,
+    fontWeight: '700',
+    lineHeight: 32,
+    marginBottom: spacing.lg,
   },
   urlCard: {
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.iconBtn,
     borderWidth: 1,
     padding: spacing.md,
     marginBottom: spacing.lg,
@@ -398,20 +471,47 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   urlText: {
-    flex: 1,
-    fontWeight: '600',
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 14,
     textDecorationLine: 'underline',
+    flex: 1,
   },
-  copyUrlBtn: {
+  copyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.xs + 2,
-    paddingHorizontal: spacing.sm + 2,
-    borderRadius: borderRadius.pill,
+    paddingHorizontal: spacing.sm + 4,
+    borderRadius: borderRadius.chip,
     borderWidth: 1,
   },
+  copyBtnText: {
+    fontFamily: fontFamilies.sans,
+    fontSize: 12,
+  },
+  snippetCard: {
+    borderRadius: borderRadius.card,
+    borderWidth: 1,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  snippetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  snippetHeaderLabel: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 11,
+    letterSpacing: 0.6,
+  },
+  snippetContent: {
+    fontFamily: fontFamilies.mono,
+    fontSize: 14,
+    lineHeight: 20,
+  },
   contentCard: {
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.card,
     borderWidth: 1,
     padding: spacing.lg,
     marginBottom: spacing.lg,
@@ -422,20 +522,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.sm,
   },
-  copyNoteBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 2,
+  contentHeaderLabel: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 11,
+    letterSpacing: 0.6,
   },
   bodyText: {
-    lineHeight: 24,
+    fontFamily: fontFamilies.sans,
+    fontSize: 15,
+    lineHeight: 23,
   },
   tagsSection: {
     marginBottom: spacing.lg,
   },
   sectionHeading: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 11,
     letterSpacing: 0.8,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.xs + 2,
   },
   tagChipsList: {
     flexDirection: 'row',
@@ -446,9 +550,9 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     marginTop: spacing.sm,
   },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  timeRowText: {
+    fontFamily: fontFamilies.sans,
+    fontSize: 12,
   },
   bottomBar: {
     position: 'absolute',
@@ -461,17 +565,20 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     gap: spacing.sm,
   },
-  actionBtn: {
+  actionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.sm + 2,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.button,
     borderWidth: 1,
     minHeight: 46,
   },
-  deleteBtn: {
+  actionBtnText: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 14,
+  },
+  deleteButton: {
     borderWidth: 1,
   },
 });

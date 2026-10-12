@@ -1,8 +1,9 @@
 import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { PressableScale } from './primitives/PressableScale';
 import { useTheme } from '../hooks/useTheme';
-import { borderRadius, spacing, typography, colors, shadows } from '../theme';
+import { borderRadius, spacing, fontFamilies, colors, shadows } from '../theme';
 
 interface ConfirmDialogProps {
   visible: boolean;
@@ -28,12 +29,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const { theme } = useTheme();
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onCancel}
-    >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={[styles.backdrop, { backgroundColor: theme.overlay }]}>
         <View
           style={[
@@ -56,14 +52,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             >
               <Feather
                 name={isDestructive ? 'trash-2' : 'alert-circle'}
-                size={22}
+                size={20}
                 color={isDestructive ? theme.danger : colors.terracotta}
               />
             </View>
-            <Text style={[styles.title, typography.h2, { color: theme.text }]}>{title}</Text>
+            <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
           </View>
 
-          <Text style={[styles.message, typography.body, { color: theme.textSecondary }]}>
+          <Text style={[styles.message, { color: theme.textSecondary }]}>
             {message}
           </Text>
 
@@ -79,14 +75,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               accessibilityRole="button"
               accessibilityLabel={cancelLabel}
             >
-              <Text style={[typography.button, { color: theme.textSecondary }]}>
+              <Text style={[styles.cancelText, { color: theme.textSecondary }]}>
                 {cancelLabel}
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              activeOpacity={0.7}
+            <PressableScale
               onPress={onConfirm}
+              haptic="medium"
               style={[
                 styles.button,
                 styles.confirmButton,
@@ -97,10 +93,10 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               accessibilityRole="button"
               accessibilityLabel={confirmLabel}
             >
-              <Text style={[typography.button, { color: '#FFFFFF' }]}>
+              <Text style={[styles.confirmText, { color: '#FFFFFF' }]}>
                 {confirmLabel}
               </Text>
-            </TouchableOpacity>
+            </PressableScale>
           </View>
         </View>
       </View>
@@ -118,7 +114,7 @@ const styles = StyleSheet.create({
   dialogContainer: {
     width: '100%',
     maxWidth: 380,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.card, // radius 20
     borderWidth: 1,
     padding: spacing.xl,
   },
@@ -128,19 +124,24 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: borderRadius.iconBtn,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
   },
   title: {
+    fontFamily: fontFamilies.serif,
+    fontSize: 20,
+    fontWeight: '700',
     flex: 1,
   },
   message: {
+    fontFamily: fontFamilies.sans,
+    fontSize: 14,
+    lineHeight: 21,
     marginBottom: spacing.xl,
-    lineHeight: 22,
   },
   actions: {
     flexDirection: 'row',
@@ -150,7 +151,7 @@ const styles = StyleSheet.create({
   button: {
     paddingVertical: spacing.sm + 4,
     paddingHorizontal: spacing.lg,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.button, // radius 10
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
@@ -158,5 +159,13 @@ const styles = StyleSheet.create({
   cancelButton: {
     borderWidth: 1,
   },
+  cancelText: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 14,
+  },
   confirmButton: {},
+  confirmText: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 14,
+  },
 });

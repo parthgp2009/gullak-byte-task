@@ -1,4 +1,4 @@
-export type ItemType = 'note' | 'link' | 'image';
+export type ItemType = 'note' | 'link' | 'image' | 'snippet';
 
 export interface Item {
   id: string;

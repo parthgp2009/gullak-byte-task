@@ -1,12 +1,13 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { ItemFilterType, ItemType } from '../types';
+import { PressableScale } from './primitives/PressableScale';
 import { useTheme } from '../hooks/useTheme';
-import { borderRadius, spacing, typography, colors } from '../theme';
+import { borderRadius, spacing, typography, colors, fontFamilies } from '../theme';
 
 interface TypeChipProps {
-  type: ItemFilterType;
+  type: ItemFilterType | 'snippet';
   isSelected?: boolean;
   onPress?: () => void;
   showIcon?: boolean;
@@ -20,9 +21,9 @@ export const TypeChip: React.FC<TypeChipProps> = ({
   showIcon = true,
   size = 'md',
 }) => {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
 
-  const getLabel = (t: ItemFilterType) => {
+  const getLabel = (t: typeof type) => {
     switch (t) {
       case 'all':
         return 'All';
@@ -32,10 +33,12 @@ export const TypeChip: React.FC<TypeChipProps> = ({
         return 'Links';
       case 'image':
         return 'Images';
+      case 'snippet':
+        return 'Snippets';
     }
   };
 
-  const getIconName = (t: ItemFilterType): React.ComponentProps<typeof Feather>['name'] => {
+  const getIconName = (t: typeof type): React.ComponentProps<typeof Feather>['name'] => {
     switch (t) {
       case 'all':
         return 'layers';
@@ -45,46 +48,55 @@ export const TypeChip: React.FC<TypeChipProps> = ({
         return 'link-2';
       case 'image':
         return 'image';
+      case 'snippet':
+        return 'code';
     }
   };
 
   const isSmall = size === 'sm';
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      disabled={!onPress}
+    <PressableScale
       onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Filter by ${getLabel(type)}`}
+      accessibilityState={{ selected: isSelected }}
       style={[
         styles.chip,
         isSmall ? styles.chipSmall : styles.chipMedium,
         isSelected
-          ? { backgroundColor: colors.terracotta, borderColor: colors.terracotta }
-          : { backgroundColor: theme.surfaceSecondary, borderColor: theme.border },
+          ? {
+              backgroundColor: colors.terracotta,
+              borderColor: colors.terracotta,
+            }
+          : {
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+            },
       ]}
-      accessibilityRole="button"
-      accessibilityLabel={`Filter by ${getLabel(type)}`}
-      accessibilityState={{ selected: isSelected }}
     >
       {showIcon && (
         <Feather
           name={getIconName(type)}
-          size={isSmall ? 13 : 15}
-          color={isSelected ? '#FFFFFF' : theme.textSecondary}
+          size={isSmall ? 13 : 14}
+          color={isSelected ? colors.cream : theme.textSecondary}
           style={styles.icon}
         />
       )}
       <Text
         style={[
           styles.label,
-          isSmall ? typography.caption : typography.subtext,
-          { color: isSelected ? '#FFFFFF' : theme.textSecondary },
-          isSelected && { fontWeight: '700' },
+          {
+            color: isSelected ? colors.cream : theme.textSecondary,
+            fontFamily: isSelected ? fontFamilies.sansSemiBold : fontFamilies.sans,
+            fontSize: isSmall ? 12 : 14,
+          },
         ]}
       >
         {getLabel(type)}
       </Text>
-    </TouchableOpacity>
+    </PressableScale>
   );
 };
 
@@ -99,27 +111,24 @@ export const ItemTypeBadge: React.FC<ItemTypeBadgeProps> = ({ type }) => {
     note: {
       label: 'Note',
       icon: 'file-text' as const,
-      bg: theme.typeNoteBg,
-      text: theme.typeNoteText,
     },
     link: {
       label: 'Link',
       icon: 'link-2' as const,
-      bg: theme.typeLinkBg,
-      text: theme.typeLinkText,
     },
     image: {
       label: 'Image',
       icon: 'image' as const,
-      bg: theme.typeImageBg,
-      text: theme.typeImageText,
+    },
+    snippet: {
+      label: 'Snippet',
+      icon: 'code' as const,
     },
   }[type];
 
   return (
-    <View style={[styles.badge, { backgroundColor: config.bg }]}>
-      <Feather name={config.icon} size={12} color={config.text} style={styles.badgeIcon} />
-      <Text style={[styles.badgeText, { color: config.text }]}>{config.label}</Text>
+    <View style={[styles.badgeTile, { backgroundColor: theme.tileCream }]}>
+      <Feather name={config.icon} size={15} color={theme.tileIconDark} />
     </View>
   );
 };
@@ -128,7 +137,7 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: borderRadius.pill,
+    borderRadius: borderRadius.chip, // radius 10 as in mockup
     borderWidth: 1,
     minHeight: 38,
   },
@@ -141,27 +150,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.xs,
     marginRight: spacing.xs + 2,
-    minHeight: 28,
+    minHeight: 30,
   },
   icon: {
     marginRight: 6,
   },
-  label: {
-    fontWeight: '500',
-  },
-  badge: {
-    flexDirection: 'row',
+  label: {},
+  badgeTile: {
+    width: 32,
+    height: 32,
+    borderRadius: borderRadius.tile, // radius 8 cream square tile
     alignItems: 'center',
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs - 1,
-    borderRadius: borderRadius.pill,
-    alignSelf: 'flex-start',
-  },
-  badgeIcon: {
-    marginRight: 4,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
+    justifyContent: 'center',
   },
 });

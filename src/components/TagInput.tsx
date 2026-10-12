@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  FlatList,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,7 +11,7 @@ import { Feather } from '@expo/vector-icons';
 import { TagChip } from './TagChip';
 import { normalizeTags } from '../utils/normalizeTags';
 import { useTheme } from '../hooks/useTheme';
-import { borderRadius, spacing, typography, colors } from '../theme';
+import { borderRadius, spacing, fontFamilies, colors } from '../theme';
 
 interface TagInputProps {
   tags: string[];
@@ -41,7 +40,6 @@ export const TagInput: React.FC<TagInputProps> = ({
     onChangeTags(tags.filter((t) => t !== tagToRemove));
   };
 
-  // Filter out suggestions that are already selected
   const availableSuggestions = suggestions.filter(
     (s) => !tags.includes(s.toLowerCase())
   );
@@ -67,19 +65,19 @@ export const TagInput: React.FC<TagInputProps> = ({
         style={[
           styles.inputContainer,
           {
-            backgroundColor: theme.surfaceSecondary,
+            backgroundColor: theme.surface,
             borderColor: theme.border,
           },
         ]}
       >
-        <Text style={[styles.hashPrefix, { color: colors.marigoldDark }]}>#</Text>
+        <Text style={[styles.hashPrefix, { color: colors.terracotta }]}>#</Text>
         <TextInput
           value={inputText}
           onChangeText={setInputText}
           onSubmitEditing={() => addTag(inputText)}
           placeholder={tags.length === 0 ? 'Add tags (e.g. recipe, travel)...' : 'Add another tag...'}
           placeholderTextColor={theme.textMuted}
-          style={[styles.input, typography.body, { color: theme.text }]}
+          style={[styles.input, { color: theme.text, fontFamily: fontFamilies.sans }]}
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="done"
@@ -93,7 +91,7 @@ export const TagInput: React.FC<TagInputProps> = ({
             accessibilityRole="button"
             accessibilityLabel="Add tag"
           >
-            <Feather name="plus" size={16} color="#FFFFFF" />
+            <Feather name="plus" size={16} color={colors.cream} />
           </TouchableOpacity>
         )}
       </View>
@@ -101,7 +99,7 @@ export const TagInput: React.FC<TagInputProps> = ({
       {/* Suggestions row */}
       {availableSuggestions.length > 0 && (
         <View style={styles.suggestionsContainer}>
-          <Text style={[styles.suggestionTitle, typography.caption, { color: theme.textMuted }]}>
+          <Text style={[styles.suggestionTitle, { color: theme.textMuted }]}>
             SUGGESTIONS:
           </Text>
           <ScrollView
@@ -116,15 +114,20 @@ export const TagInput: React.FC<TagInputProps> = ({
                 style={[
                   styles.suggestionChip,
                   {
-                    backgroundColor: theme.surfaceSecondary,
-                    borderColor: theme.borderSubtle,
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
                   },
                 ]}
                 accessibilityRole="button"
                 accessibilityLabel={`Add suggested tag ${suggestion}`}
               >
-                <Feather name="plus" size={11} color={colors.marigoldDark} style={{ marginRight: 2 }} />
-                <Text style={[typography.caption, { color: theme.textSecondary }]}>
+                <Feather
+                  name="plus"
+                  size={11}
+                  color={colors.terracotta}
+                  style={{ marginRight: 3 }}
+                />
+                <Text style={[styles.suggestionChipText, { color: theme.textSecondary }]}>
                   {suggestion}
                 </Text>
               </TouchableOpacity>
@@ -148,24 +151,25 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.chip, // radius 10
     borderWidth: 1,
     paddingHorizontal: spacing.md,
     minHeight: 46,
   },
   hashPrefix: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontFamily: fontFamilies.sansBold,
+    fontSize: 15,
     marginRight: spacing.xs,
   },
   input: {
     flex: 1,
     paddingVertical: spacing.sm,
+    fontSize: 14,
   },
   addButton: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: borderRadius.sm,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: spacing.xs,
@@ -174,7 +178,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   suggestionTitle: {
-    letterSpacing: 0.5,
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 10,
+    letterSpacing: 0.6,
     marginBottom: spacing.xs,
   },
   suggestionScroll: {
@@ -185,10 +191,14 @@ const styles = StyleSheet.create({
   suggestionChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: borderRadius.pill,
+    borderRadius: borderRadius.chip,
     borderWidth: 1,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs - 2,
+    paddingHorizontal: spacing.sm + 4,
+    paddingVertical: spacing.xs,
     marginRight: spacing.sm,
+  },
+  suggestionChipText: {
+    fontFamily: fontFamilies.sans,
+    fontSize: 12,
   },
 });
