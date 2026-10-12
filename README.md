@@ -1,143 +1,104 @@
-# Gullak (गुल्लक) 🏺
-> **"Drop it in. Find it later."**
+# Gullak
 
-A private, beautifully crafted, single-device personal save-for-later mobile application built with **React Native**, **Expo (SDK 57)**, **TypeScript (Strict)**, and **Expo Router**.
+> Drop it in. Find it later.
 
----
+A *gullak* is the traditional Indian clay piggy bank, a place where you drop small things to keep them safe. Gullak the app does the same for your notes, links, snippets, and images: save them in seconds, then find them again with search, filters, and tags.
 
-## 📖 About Gullak
+**Stage reached: Stage 1 (local-only app).** There is no authentication and no backend. All data stays on the device.
 
-In Indian households, a **Gullak** (गुल्लक) is a traditional terracotta clay piggy bank. From loose coins to handwritten notes and cherished trinkets, you drop little treasures into your gullak through a narrow slit, knowing they are safely stored until you need them.
+## Runnable build
 
-This app is the digital reflection of that timeless concept: a clutter-free, privacy-first vault right on your device. Whether it is a fleeting spark of thought, a recipe link, an interesting article, a saved photo, or a quick code snippet, you can **drop it in** and **find it later**.
+- **Android APK (Expo build):** https://expo.dev/accounts/parth_2009/projects/gullak/builds/2e5e6059-8150-4912-87f8-2af0d7db7017
+  Open the link on an Android phone, tap Install, and allow installs from unknown sources if Android asks.
+- Or run it from source (see [How to run](#how-to-run)).
 
-There are **no accounts**, **no clouds**, **no tracking**, and **no sync servers**. Everything lives 100% locally on your device.
+## Features
 
----
+- Save four kinds of items: **notes**, **links**, **snippets**, and **images**.
+- Snippets are shown in a monospace block with one-tap copy.
+- Every item has an ID, type, title, content or URL, tags, created and updated dates, and an archived state.
+- Create, view, open, edit, and delete items.
+- Archive and restore items, with separate Active and Archived views.
+- Add tags to items (lowercased, trimmed, duplicates removed).
+- Search across title, content, URL, and tags as you type.
+- Filter by type (All, Notes, Links, Snippets, Images) and by tag. Search and filters work together.
+- Data persists locally and survives closing and reopening the app.
+- Handles unusual input: empty notes are blocked, links without `https://` are normalised and validated, empty titles are auto-generated, and very long text does not break the layout.
+- Light and dark themes.
 
-## 🎨 Visual Identity & Design Tokens
+## Tech stack
 
-Gullak is styled after a high-end, bespoke artisanal mobile aesthetic:
-- **Primary Theme**: Near-black charcoal (`#141416`) with dark surface cards (`#1E1E21`) and subtle 1px hairline borders (`rgba(255, 255, 255, 0.10)`).
-- **Terracotta Accent** (`#C8654A` / pressed `#B5563D`): Baked clay warmth for active chips, primary buttons, and wordmark dot.
-- **Warm Cream Text** (`#F3E9DC`): High-contrast, easy-on-the-eyes editorial typography.
-- **Muted Text** (`#9A948C`): Subtle secondary information hierarchy.
-- **Matching Warm Paper Light Theme**: Light paper background (`#FAF6F0`), crisp surface cards (`#FFFFFF`), and dark clay text (`#261E1A`), accessible via the Settings sheet.
-- **Typography**:
-  - **Fraunces** (`Fraunces_700Bold`): Elegant serif for the `"Gullak."` wordmark (with terracotta dot) and screen titles.
-  - **Inter** (`Inter_400Regular`, `Inter_500Medium`, `Inter_600SemiBold`, `Inter_700Bold`): Modern sans-serif for body, buttons, chips, and metadata.
-  - **Monospace** (`Menlo` / `monospace`): For code and text snippets.
-- **Proportions & Radii**:
-  - Cards: `20px` (modern squircle aesthetic).
-  - Chips & Action Buttons: `10px` (rounded rectangles, not pills).
-  - Icon Buttons: `12px` (44px touch targets).
-  - Empty State Floating Tiles: `8px`.
+- Expo (React Native) with TypeScript
+- expo-router for navigation
+- AsyncStorage for local persistence
+- expo-image-picker and expo-file-system for images
+- expo-haptics and react-native-reanimated for feel and motion
+- EAS Build for the Android APK
 
----
+## How to run
 
-## ✨ Features
+Requirements: Node.js LTS, and the Expo Go app on your phone (same Wi-Fi as your computer).
 
-### 1. Four Item Types with Tailored Inputs
-- 📝 **Notes**: Multiline body text with optional titles (auto-derives from the first line if left blank).
-- 🔗 **Links**: Web URLs with automatic `https://` protocol normalization, domain extraction, deterministic local monogram tiles (zero network requests), in-app external browser opening, and one-tap clipboard copying.
-- 🖼️ **Images**: Capture from camera or select from photo gallery. Every picked image is permanently copied into the application's private document directory (`expo-file-system`), surviving app restarts and cache purges.
-- 💻 **Snippets**: Code and text snippets displayed in dedicated monospace blocks with one-tap copy buttons.
+```
+git clone https://github.com/parthgp2009/gullak-byte-task.git
+cd gullak-byte-task
+npm install
+npx expo start
+```
 
-### 2. Mockup-Accurate Home Experience
-- **Header Row**: `"Gullak."` in Fraunces serif with terracotta period, plus two 44px outlined icon buttons:
-  - *Archive button*: Quick toggle to archived view.
-  - *Settings button*: Opens bottom sheet with Dark/Light/System theme switch and app details.
-- **Animated Segmented Control**: Smooth Reanimated sliding transition between **Active** and **Archived** with a 1px terracotta outline on the active segment.
-- **Search & Tag Filter Sheet**: Search bar with leading icon and trailing sliders icon opening a tag filter bottom sheet.
-- **Filter Chips**: Horizontally scrollable row: `All`, `Notes`, `Links`, `Images`, `Snippets` running off the right edge.
-- **Empty State**: Centered 3D clay pot (`assets/images/gullak-pot.png`) with smooth 4s sine float animation, surrounded by five floating cream icon tiles with independent float and rotation, bold Inter title, subtitle, and terracotta button.
-- **Floating "Drop in" FAB**: Bottom-right rounded rectangle (radius 10), terracotta fill, spring scale on press with light haptics (`expo-haptics`).
+Scan the QR code with Expo Go (Android) or the Camera app (iPhone). If your phone cannot connect, use `npx expo start --tunnel`.
 
-### 3. Gesture Actions & List Transitions
-- **Swipe Left**: Archive / Restore with medium haptic.
-- **Swipe Right**: Delete with medium haptic and confirmation modal.
-- Smooth Reanimated layout transitions during list modifications.
+To build the APK yourself:
 
-### 4. Create, Edit & Detail Views
-- Outlined inputs with hairline borders and radius 12.
-- Full-width terracotta primary button above keyboard with quiet text "Cancel".
-- Save flourish coin animation dropping smoothly as save completes.
-- Detail screen with large Fraunces title, metadata micro-labels, domain monograms, and sticky outlined action bar (Edit, Archive, Delete).
+```
+npm install -g eas-cli
+eas login
+eas build -p android --profile preview
+```
 
----
+## Architecture
 
-## 🛠️ Tech Stack
+```mermaid
+graph LR
+  A[Mobile App - Expo and React Native] --> B[useItems hook]
+  B --> C[itemRepository]
+  C --> D[AsyncStorage - item data]
+  C --> E[App document directory - image files]
+```
 
-| Technology | Purpose |
-| :--- | :--- |
-| **Expo SDK 57 & React Native 0.86** | Cross-platform native mobile foundation |
-| **TypeScript (Strict Mode)** | Complete end-to-end type safety |
-| **Expo Router** | File-based declarative routing (`/`, `/item/new`, `/item/[id]`, `/item/edit/[id]`) |
-| **`@react-native-async-storage/async-storage`** | Fast local key-value storage under versioned key `"gullak:items:v1"` |
-| **`expo-file-system/legacy`** | Permanent local sandbox copying for persistent image retention |
-| **`react-native-reanimated`** | Smooth 60fps animations: pot float, floating tiles, segmented slide, spring buttons |
-| **`react-native-gesture-handler`** | Native swipe-to-archive and swipe-to-delete gestures |
-| **`expo-haptics`** | Native tactile vibration on press, swipe, and save flourish |
-| **`@expo-google-fonts/fraunces` & `inter`** | Editorial serif and crisp sans-serif loaded with `expo-splash-screen` |
+Stage 1 architecture: Mobile App to Local Storage.
 
----
+```
+app/            screens (expo-router): Inbox, Create, Detail, Edit
+src/
+  types.ts      Item data model
+  theme.ts      colours, spacing, typography tokens
+  storage/      itemRepository.ts (all storage access)
+  hooks/        useItems (shared state and actions)
+  utils/        search, URL and tag normalisation, title derivation, dates
+  components/   reusable UI pieces
+```
 
-## 🚀 How to Run Locally
+## Important technical decisions
 
-1. Navigate into the `gullak` folder:
-   ```bash
-   cd "gullak"
-   ```
+- **Storage behind a repository layer.** Screens never talk to AsyncStorage directly. They call `useItems`, which calls `itemRepository`. Switching to SQLite or a backend later means changing one file, not the UI.
+- **Single versioned storage key** (`gullak:items:v1`). The whole item list is stored as JSON. Parsing is wrapped in a safe fallback, so corrupt data returns an empty list instead of crashing the app.
+- **One shared source of truth.** `useItems` loads items once on launch and persists after every change, so the Inbox, Detail, and Edit screens never show stale data.
+- **Images are copied into the app's document directory.** Picker results are often temporary cache files that can disappear. Copying the file and storing its local path keeps images available after restarts. Deleting an image item also deletes its copied file, and a missing file shows a placeholder instead of crashing.
+- **Search and filters combine in sequence.** The list is filtered by archived state, then type, then tag, then the search text, so all of them work together.
+- **Link normalisation.** If a URL has no scheme, `https://` is added before validation.
+- **Snippet type added without breaking old data.** `snippet` was added to the item type union only. The storage key and the shape of existing items are unchanged, so items saved before the change still load.
+- **Reusable form.** Create and Edit share one form component, so validation and behaviour stay identical.
 
-2. Start the Expo development server:
-   ```bash
-   npx expo start
-   ```
+## Known issues and limitations
 
-3. Open on your device or simulator:
-   - **Physical Device**: Scan the QR code in the terminal with the **Expo Go** app.
-   - **Android Emulator**: Press `a`.
-   - **iOS Simulator**: Press `i` (macOS).
-   - **Web Preview**: Press `w`.
+No known bugs at the time of writing. The items below are limitations of the Stage 1 design.
 
-4. Run type check:
-   ```bash
-   npx tsc --noEmit
-   ```
+- Data is stored only on the device. Uninstalling the app or clearing its data deletes everything, and there is no backup or sync.
+- There is no authentication, since Stage 1 is single-device by design.
+- AsyncStorage is a simple key-value store. It is fine for a personal inbox, but SQLite would suit a very large number of items better.
+- The APK is not distributed through the Play Store, so Android shows an "unknown sources" prompt on install.
 
-5. Run verification suite:
-   ```bash
-   node scripts/verify-logic.js
-   ```
+## Commit history
 
----
-
-## 🧪 Verification Matrix & Test Results
-
-| Feature / Scenario | Verification Details | Result |
-| :--- | :--- | :---: |
-| **TypeScript Strict Checking** | Ran `npx tsc --noEmit` across all app and src files | **PASS (0 errors)** ✅ |
-| **Logic Verification Suite** | Ran `node scripts/verify-logic.js` (URLs, tags, titles, search, snippets) | **PASS (100%)** ✅ |
-| **Production Web Export** | Ran `npx expo export --platform web` across all 6 static routes | **PASS (0 errors)** ✅ |
-| **Header Row Layout** | Fraunces wordmark with terracotta dot, 44px archive & settings buttons | **PASS** ✅ |
-| **Animated Segmented Control** | 1px terracotta outline, smooth sliding animation, haptic feedback | **PASS** ✅ |
-| **Search & Tag Filter Sheet** | Live search, sliders icon opens bottom sheet with toggleable chips | **PASS** ✅ |
-| **Filter Chips** | Radius 10, terracotta active state, chips scroll smoothly off right edge | **PASS** ✅ |
-| **Empty State 3D Pot** | 4s sine float on 3D pot, 5 independent floating cream tiles | **PASS** ✅ |
-| **Floating "Drop in" FAB** | Radius 10 rectangle, terracotta, spring scale with light haptics | **PASS** ✅ |
-| **Item Cards Redesign** | Surface `#1E1E21`, 1px border, radius 20, Fraunces title, domain monogram | **PASS** ✅ |
-| **Snippet Type** | 4th item type: monospace code block with one-tap copy button | **PASS** ✅ |
-| **Swipe Gestures** | Swipe left to archive, swipe right to delete, with tactile haptics | **PASS** ✅ |
-| **Create & Edit Screens** | Outlined inputs, quiet cancel, inline error states, coin drop flourish | **PASS** ✅ |
-| **Detail View** | Large Fraunces title, domain monogram, outlined action buttons, delete sheet | **PASS** ✅ |
-| **Persistence Across Restarts** | Saved items and local images reload cleanly without data loss | **PASS** ✅ |
-| **Theme Toggle** | Settings sheet toggles smoothly between Dark Charcoal and Warm Paper Light | **PASS** ✅ |
-
----
-
-## 🔮 Stage 2 Ideas (Roadmap)
-
-1. **Biometric Vault Lock**: FaceID / TouchID lock via `expo-local-authentication`.
-2. **Encrypted Archive Export**: Export/import a password-protected ZIP archive containing all items and image assets.
-3. **Syntax Highlighting**: On-device language detection and syntax coloring for Snippet blocks.
-4. **Offline OCR**: Extract text directly from saved photos and receipts.
+The repository history shows the work in order: data layer, screens, redesign, and build setup.
